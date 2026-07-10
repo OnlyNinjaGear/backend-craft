@@ -1,49 +1,84 @@
 # backend-craft
 
-`backend-craft` is a Claude Code/Codex skill package for backend engineering.
-It is designed to stop agents from shipping plausible backend code that fails
-under production conditions.
+[![CI](https://github.com/OnlyNinjaGear/backend-craft/actions/workflows/ci.yml/badge.svg)](https://github.com/OnlyNinjaGear/backend-craft/actions/workflows/ci.yml)
+![Status](https://img.shields.io/badge/status-v0.1%20frozen-blue)
+![Rules](https://img.shields.io/badge/semgrep-13%20rules-2ea44f)
+![Fixtures](https://img.shields.io/badge/fixtures-16%20planted%20flaws-orange)
 
-It is not a style guide and not a language encyclopedia. The skill routes work
-by **failure surface** first:
+[English README](README.en.md)
 
-- API contracts and compatibility
-- authorization, tenancy, PII, secrets, SSRF
-- persistence, migrations, transactions, indexes
-- retries, timeouts, queues, workers, cancellation, idempotency
-- observability, tests, CI, review discipline
-- Python, Go, and TypeScript/Node language adapters
+`backend-craft` — универсальный backend-safety skill для Claude Code/Codex.
+Он помогает агенту не писать правдоподобный backend-код, который ломается в
+production: утечки tenant-данных, небезопасные миграции, повторные платежи,
+retry-storm, потерянные фоновые задачи, невалидные API-контракты и похожие
+ошибки.
 
-Current release: **v0.1 frozen**. Further source digestion and rule promotion
-are backlog work unless explicitly reopened.
+Это **не** шпаргалка "пиши хорошо". Скилл сначала определяет поверхность риска,
+а потом подключает нужные reference-файлы и языковой адаптер.
 
-## What Is Included
+## Коротко
 
-```text
-.claude/skills/backend-craft/      # the installable skill
-  SKILL.md                         # router workflow
-  references/                      # risk-domain reference packs
-rules/semgrep/backend-craft.yml    # high-confidence Semgrep checks
-hooks/                             # optional bounded PostToolUse hook
-fixtures/                          # intentionally flawed backend fixtures
-forward-test-results/              # skill evaluation transcripts
-docs/                              # architecture, evidence, source map
-FAILURE_CARDS.md                   # failure-card corpus
-```
+| Вопрос | Ответ |
+|---|---|
+| Что это? | Skill-пакет для backend-разработки и ревью агентами Claude Code/Codex |
+| Для кого? | Для проектов на Python, Go, TypeScript/Node с Postgres/MongoDB и типовыми backend-рисками |
+| Как устроен? | Один router skill + reference packs по production failure surfaces |
+| Текущий статус | `v0.1 frozen`: разработка остановлена, расширение только по явному решению владельца |
+| Проверено | 3 раунда forward tests, fixtures, Semgrep baseline, hook acceptance, real-backend validation |
+| Лицензия | Пока не выбрана; перед широким распространением нужно добавить `LICENSE` |
 
-## Install The Skill
+## Какие риски закрывает
 
-Use it as a project-local Claude Code skill:
+| Поверхность | Примеры провалов, которые скилл заставляет проверять |
+|---|---|
+| API contracts | несовместимые изменения, публичные DTO, ошибки/статусы, webhooks |
+| Auth / tenancy | BOLA, tenant leaks, role mistakes, PII/secrets/logging, SSRF |
+| Persistence | SQL injection, транзакции вокруг network calls, unsafe DDL, N+1 |
+| Reliability | timeouts, retries, jitter, cancellation, queues, workers, idempotency |
+| Observability | request/job correlation, bounded metric labels, redaction |
+| Testing | failure-path tests, DB integration tests, contract diffs, migration proof |
+| Language adapters | Python async/exceptions, Go context/goroutines/errors, TS runtime boundaries |
+
+## Что внутри
+
+| Путь | Назначение |
+|---|---|
+| [`.claude/skills/backend-craft/`](.claude/skills/backend-craft/) | сам installable skill |
+| [`FAILURE_CARDS.md`](FAILURE_CARDS.md) | база failure cards |
+| [`rules/semgrep/backend-craft.yml`](rules/semgrep/backend-craft.yml) | Semgrep-пак для механически ловимых паттернов |
+| [`hooks/`](hooks/) | optional PostToolUse hook, advisory-only |
+| [`fixtures/`](fixtures/) | три специально сломанных backend-манекена |
+| [`forward-test-results/`](forward-test-results/) | результаты экзаменов скилла |
+| [`docs/`](docs/) | архитектура, evidence log, sources, статус |
+
+## Статус v0.1
+
+| Артефакт | Статус |
+|---|---:|
+| Failure cards | 39 |
+| Production-tested cards | 15 |
+| Semgrep rules | 13 |
+| Production-tested Semgrep rules | 2 |
+| Fixture-tested Semgrep rules | 11 |
+| Draft Semgrep rules | 0 |
+| Fixtures | 3 проекта, 16 planted flaws |
+| Forward tests | 3 раунда |
+| Hook acceptance | 14/14 assertions |
+| GitHub CI | включён |
+
+Подробности: [docs/STATUS.md](docs/STATUS.md), [docs/CHECKERS.md](docs/CHECKERS.md),
+[docs/EVIDENCE_LOG.md](docs/EVIDENCE_LOG.md).
+
+## Установка
+
+Скопируйте skill в проект, где работает Claude Code:
 
 ```bash
 mkdir -p /path/to/your-project/.claude/skills
 cp -R .claude/skills/backend-craft /path/to/your-project/.claude/skills/
 ```
 
-Then ask Claude Code to use `backend-craft` when building, reviewing, hardening,
-or choosing a backend stack.
-
-Example prompts:
+После этого используйте в запросах:
 
 ```text
 Use backend-craft to review this backend for production risks.
@@ -57,83 +92,72 @@ Use backend-craft to design the backend foundation for a small B2B SaaS.
 Use backend-craft while adding this mutating endpoint. Clients may retry.
 ```
 
-## Optional Hook
+## Optional hook
 
-The optional hook runs cheap file-level checks after edits and feeds at most
-five advisory findings back to the agent. It always exits `0` and never claims a
-clean checker run means the backend is safe.
+В [hooks/](hooks/) есть PostToolUse hook, который после edit/write запускает
+лёгкие проверки по изменённому backend-файлу:
 
-See [hooks/README.md](hooks/README.md).
+| Свойство | Поведение |
+|---|---|
+| Режим | advisory-only |
+| Exit code | всегда `0`, не блокирует работу агента |
+| Лимит | максимум 5 findings за событие |
+| Dedup | одно и то же замечание показывается один раз за session |
+| Приоритет | сначала project-local tools, затем Semgrep gap-filler |
+| Важное ограничение | чистый checker run не означает, что backend безопасен |
 
-## Validation Status
+Инструкция подключения: [hooks/README.md](hooks/README.md).
 
-v0.1 contains:
+## Проверки локально
 
-- 39 failure cards, including 15 `production-tested` cards
-- 13 Semgrep rules: 2 `production-tested`, 11 `fixture-tested`, 0 `draft`
-- 3 runnable fixture projects with 16 planted flaws
-- 3 rounds of forward tests
-- real-backend validation on a mixed NestJS/Go/Python monorepo
-- a bounded hook with 14/14 acceptance assertions
+| Проверка | Команда |
+|---|---|
+| Sanity репозитория | `uv run --with pyyaml python scripts/validate_repo.py` |
+| Python fixture | `cd fixtures/python-fastapi && uv run pytest -q` |
+| Go fixture | `cd fixtures/go-http && go vet ./... && go test ./...` |
+| TypeScript fixture | `cd fixtures/ts-fastify && pnpm install --frozen-lockfile && pnpm typecheck && pnpm test` |
+| Semgrep baseline | `uvx semgrep --config rules/semgrep/backend-craft.yml --no-git-ignore --exclude node_modules .` |
+| Hook acceptance | `hooks/test-hook.sh` |
 
-Status details live in [docs/CHECKERS.md](docs/CHECKERS.md) and
-[docs/EVIDENCE_LOG.md](docs/EVIDENCE_LOG.md).
+GitHub Actions повторяет основные проверки в [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
-## Run Checks Locally
+## Как читать документацию
 
-Repository sanity checks:
+| Документ | Зачем нужен |
+|---|---|
+| [docs/README.md](docs/README.md) | навигация по документации |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | почему skill устроен как router, а не набор языковых шпаргалок |
+| [FAILURE_CARDS.md](FAILURE_CARDS.md) | атомарные failure cards |
+| [docs/CHECKERS.md](docs/CHECKERS.md) | статусы Semgrep rules и real-backend validation |
+| [docs/SOURCES.md](docs/SOURCES.md) | какие официальные источники допущены и зачем |
+| [docs/FORWARD_TESTS.md](docs/FORWARD_TESTS.md) | методика forward-тестирования |
+| [fixtures/README.md](fixtures/README.md) | intentionally flawed fixtures |
 
-```bash
-python3 -m pip install pyyaml
-python3 scripts/validate_repo.py
-```
+## Что не входит в v0.1
 
-Fixture suites:
+Это намеренно отложено в backlog:
 
-```bash
-cd fixtures/python-fastapi && uv run pytest -q
-cd ../go-http && go vet ./... && go test ./...
-cd ../ts-fastify && pnpm install --frozen-lockfile && pnpm typecheck && pnpm test
-```
+| Тема | Почему не сейчас |
+|---|---|
+| Flyway / Liquibase | JVM/Java scope не открыт |
+| Kafka consumer semantics | event-stream scope не открыт |
+| Sidekiq-class queues | Ruby/Rails scope не открыт |
+| Новые production-tested promotions | делать только когда появится подходящий реальный backend |
+| Разделение на языковые skills | только если будущие forward tests докажут, что router-модель недостаточна |
 
-Semgrep pack:
+## Граница проекта
 
-```bash
-uvx semgrep --config rules/semgrep/backend-craft.yml --no-git-ignore --exclude node_modules .
-```
+Новые знания добавляются только если они дают одно из:
 
-Hook acceptance tests:
+- failure card;
+- verifier;
+- checker;
+- source-backed playbook step.
 
-```bash
-hooks/test-hook.sh
-```
+Общие советы вида "пишите безопасно" или "обрабатывайте ошибки хорошо" сюда не
+принимаются.
 
-## Documentation
+## Лицензия
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — skill architecture and routing model
-- [FAILURE_CARDS.md](FAILURE_CARDS.md) — failure-card corpus
-- [docs/CHECKERS.md](docs/CHECKERS.md) — checker status and validation records
-- [docs/SOURCES.md](docs/SOURCES.md) — admitted source map
-- [docs/FORWARD_TESTS.md](docs/FORWARD_TESTS.md) — forward-test protocol
-- [docs/EVIDENCE_LOG.md](docs/EVIDENCE_LOG.md) — evidence/promotion log
-- [fixtures/README.md](fixtures/README.md) — fixture corpus
-
-## Development Boundary
-
-Do not expand the skill casually. New material should enter only when it can
-produce a failure card, verifier, checker, or source-backed playbook step.
-
-Backlog items are intentionally deferred:
-
-- Flyway/Liquibase source digestion
-- Kafka consumer semantics
-- Sidekiq-class queue patterns
-- opportunistic promotion of remaining fixture-tested Semgrep rules
-
-Do not split this into language-specific skills unless future forward tests
-prove the router insufficient.
-
-## License
-
-No open-source license has been selected yet. Choose and add a license before
-publishing this repository publicly.
+Лицензия пока не выбрана. Перед активной публичной публикацией нужно добавить
+`LICENSE` и обновить этот раздел.
