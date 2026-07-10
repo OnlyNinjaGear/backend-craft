@@ -1,39 +1,56 @@
-# Contributing
+# Как вносить изменения
 
-`backend-craft` v0.1 is frozen. Please do not expand scope by default.
+`backend-craft v0.1` заморожен. По умолчанию репозиторий принимает только
+исправления, упаковку и доказательства к уже существующим карточкам.
 
-Acceptable changes:
+Новые области, языки, библиотеки и большие rule families требуют отдельного
+решения владельца до начала работы.
 
-- bug fixes in existing instructions, checkers, fixtures, or hook behavior
-- documentation fixes
-- CI or packaging fixes
-- new evidence for an existing failure card
+## Что можно делать без расширения scope
 
-New domains, languages, libraries, or rule families require an explicit owner
-decision before implementation.
+- исправлять ошибки в существующих инструкциях, checkers, fixtures или hook;
+- улучшать README и документацию;
+- чинить CI и упаковку;
+- добавлять новые доказательства к существующей failure card;
+- уточнять источники, если они меняют конкретное правило или verifier.
 
-## Rule Admission Bar
+## Что не принимается
 
-New backend knowledge must produce at least one of:
+- общие советы без проверяемого failure mode;
+- новые темы "на всякий случай";
+- копипаста из документации без вывода в card, verifier или checker;
+- большие переписывания скилла без слепого теста.
 
-- a failure card
-- a verifier
-- a checker
-- a source-backed playbook step
+## Планка для нового знания
 
-Avoid generic advice such as "write secure code" or "handle errors well".
+Материал может попасть в скилл только если дает хотя бы одно:
 
-## Validation
+- failure card;
+- verifier;
+- checker;
+- шаг playbook со ссылкой на источник.
 
-Run before submitting changes:
+Процесс описан в [docs/CASE_PIPELINE.md](docs/CASE_PIPELINE.md).
+
+## Стиль текста
+
+Перед правкой README, docs или комментариев прочитайте
+[docs/WRITING_STYLE.md](docs/WRITING_STYLE.md).
+
+Коротко: пишите как инженер, который отвечает за результат. Без маркетинга.
+Без внутренних заметок для владельца. Без фраз, которые не помогают принять
+решение.
+
+## Проверки
+
+Минимум перед PR:
 
 ```bash
-python3 -m pip install pyyaml
-python3 scripts/validate_repo.py
+uv run --with pyyaml python scripts/validate_repo.py
 hooks/test-hook.sh
 ```
 
-Run fixture-specific commands when changing fixtures or rules:
+Если менялись fixtures или rules, запустите релевантные проверки:
 
 ```bash
 cd fixtures/python-fastapi && uv run pytest -q

@@ -1,30 +1,40 @@
-# Документация backend-craft
+# Документация
 
-Здесь лежат документы вокруг скилла: архитектура, evidence, источники,
-протоколы проверки и frozen-status. Сам installable skill находится в
-`.claude/skills/backend-craft/`.
+Здесь не сам скилл, а материалы вокруг него: как он устроен, чем проверен и как
+его можно менять без превращения в набор советов обо всем.
 
-## С чего начать
+Сам скилл лежит в [../.claude/skills/backend-craft/](../.claude/skills/backend-craft/).
 
-| Документ | Что внутри |
+## Начать отсюда
+
+| Документ | Зачем читать |
 |---|---|
-| [STATUS.md](STATUS.md) | frozen v0.1 status и backlog |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | почему выбран router skill + risk references |
-| [../FAILURE_CARDS.md](../FAILURE_CARDS.md) | база failure cards |
-| [SOURCES.md](SOURCES.md) | карта официальных источников |
+| [STATUS.md](STATUS.md) | что входит в `v0.1` и что намеренно не входит |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | почему выбран один router skill |
+| [../FAILURE_CARDS.md](../FAILURE_CARDS.md) | список ошибок, на которых держится скилл |
+| [SOURCES.md](SOURCES.md) | какие источники можно использовать как опору |
 
-## Проверка и доказательства
+## Проверки
 
-| Документ | Что проверяет |
+| Документ | Что описывает |
 |---|---|
-| [CHECKERS.md](CHECKERS.md) | Semgrep pack, rule statuses, real-backend validation |
-| [FORWARD_TESTS.md](FORWARD_TESTS.md) | protocol для blind forward tests |
-| [EVIDENCE_LOG.md](EVIDENCE_LOG.md) | журнал promotion/retirement карточек и правил |
-| [../fixtures/README.md](../fixtures/README.md) | intentionally flawed fixtures |
+| [CHECKERS.md](CHECKERS.md) | Semgrep rules, статусы и real-backend validation |
+| [FORWARD_TESTS.md](FORWARD_TESTS.md) | как проводить слепые проверки скилла |
+| [EVIDENCE_LOG.md](EVIDENCE_LOG.md) | почему карточки и правила получили свой статус |
+| [../fixtures/README.md](../fixtures/README.md) | намеренно сломанные fixtures |
 
-## Исторические заметки
+## Как менять проект
 
-| Документ | Контекст |
+| Документ | Что задает |
 |---|---|
-| [ANATOMY.md](ANATOMY.md) | ранние anatomy/review notes |
-| [CLAUDE_HANDOFF.md](CLAUDE_HANDOFF.md) | frozen handoff/backlog record |
+| [CASE_PIPELINE.md](CASE_PIPELINE.md) | как превращать реальные баги в карточки, проверки и tests |
+| [WRITING_STYLE.md](WRITING_STYLE.md) | как писать README, docs и комментарии |
+| [../CONTRIBUTING.md](../CONTRIBUTING.md) | правила для PR и локальные проверки |
+| [../SECURITY.md](../SECURITY.md) | как сообщать о проблемах безопасности |
+
+## История
+
+| Документ | Что это |
+|---|---|
+| [ANATOMY.md](ANATOMY.md) | ранний разбор формы скиллов |
+| [CLAUDE_HANDOFF.md](CLAUDE_HANDOFF.md) | handoff после заморозки `v0.1` |
