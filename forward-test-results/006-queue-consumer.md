@@ -3,7 +3,7 @@
 > **Run-integrity note (2026-07-10):** tested agents in this batch were not
 > isolated; implementation-shaped tasks edited the shared fixtures in place
 > while sibling tests were reading them. Fixtures were restored from pristine
-> snapshots afterwards and re-verified (see FORWARD_TESTS.md isolation rules).
+> snapshots afterwards and re-verified (see ../docs/FORWARD_TESTS.md isolation rules).
 > Design-only tests (001, 007) are unaffected.
 
 Date: 2026-07-10

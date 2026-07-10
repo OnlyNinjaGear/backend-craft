@@ -8,7 +8,7 @@ built with **TypeScript + Fastify + vitest**. It exists to **forward-test the
 `rules/semgrep/backend-craft.yml`.
 
 It contains **exactly 5 planted production-safety flaws**, each mapped to a
-failure card in `FAILURE_CARDS.md` and marked in code with a single comment:
+failure card in `../../FAILURE_CARDS.md` and marked in code with a single comment:
 
 ```ts
 // PLANTED: <card-id>
@@ -64,7 +64,7 @@ Exactly 5 planted flaws. All live in `src/app.ts`.
 Note: the Semgrep floating-promise rule was **retired** (2026-07-10) exactly
 because of the noise this fixture measured — Semgrep matches subexpressions, so
 awaited/assigned `db.query(...)` and `reply.send(...)` calls fired too
-(precision ~1/8; see `../../CHECKERS.md`). The `ts-floating-promise` plant at
+(precision ~1/8; see `../../docs/CHECKERS.md`). The `ts-floating-promise` plant at
 `src/app.ts:68` is therefore **not Semgrep-detectable by design**; its verifier
 is type-aware `@typescript-eslint/no-floating-promises`. Expected Semgrep hits
 for this fixture: exactly 3 (`mass-assignment-request-body`,

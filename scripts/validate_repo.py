@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+"""Repository sanity checks for backend-craft.
+
+This is packaging/CI glue only. It validates that the public repo shape still
+matches the frozen v0.1 artifacts without changing skill behavior.
+"""
+
+from __future__ import annotations
+
+import pathlib
+import re
+import sys
+
+import yaml
+
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+SKILL = ROOT / ".claude" / "skills" / "backend-craft" / "SKILL.md"
+RULES = ROOT / "rules" / "semgrep" / "backend-craft.yml"
+CARDS = ROOT / "FAILURE_CARDS.md"
+
+
+def fail(message: str) -> None:
+    print(f"validate_repo: {message}", file=sys.stderr)
+    raise SystemExit(1)
+
+
+def read(path: pathlib.Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError as exc:
+        fail(f"cannot read {path.relative_to(ROOT)}: {exc}")
+
+
+def validate_skill() -> None:
+    text = read(SKILL)
+    if not text.startswith("---\n"):
+        fail("SKILL.md is missing YAML frontmatter")
+    try:
+        frontmatter = text.split("---\n", 2)[1]
+        data = yaml.safe_load(frontmatter)
+    except Exception as exc:  # noqa: BLE001 - this is a validation script
+        fail(f"SKILL.md frontmatter is invalid YAML: {exc}")
+    if data.get("name") != "backend-craft":
+        fail("SKILL.md frontmatter name must be backend-craft")
+    if "backend" not in str(data.get("description", "")).lower():
+        fail("SKILL.md description no longer triggers on backend work")
+
+    missing_refs: list[str] = []
+    for ref in sorted(set(re.findall(r"`(references/[^`]+\.md)`", text))):
+        if not (SKILL.parent / ref).exists():
+            missing_refs.append(ref)
+    if missing_refs:
+        fail("SKILL.md references missing files: " + ", ".join(missing_refs))
+
+
+def validate_rules() -> None:
+    try:
+        rules_doc = yaml.safe_load(read(RULES))
+    except Exception as exc:  # noqa: BLE001
+        fail(f"Semgrep rule pack is invalid YAML: {exc}")
+    rules = rules_doc.get("rules")
+    if not isinstance(rules, list) or not rules:
+        fail("Semgrep rule pack has no rules")
+
+    card_ids = set(re.findall(r"^## ([a-z0-9-]+)$", read(CARDS), re.MULTILINE))
+    missing_cards: list[str] = []
+    missing_status: list[str] = []
+    for rule in rules:
+        metadata = rule.get("metadata") or {}
+        card = metadata.get("failure_card")
+        if card not in card_ids:
+            missing_cards.append(f"{rule.get('id')} -> {card}")
+        if "status" not in metadata:
+            missing_status.append(str(rule.get("id")))
+    if missing_cards:
+        fail("Semgrep rules reference missing failure cards: " + ", ".join(missing_cards))
+    if missing_status:
+        fail("Semgrep rules missing metadata.status: " + ", ".join(missing_status))
+
+
+def validate_fixtures() -> None:
+    fixtures_readme = read(ROOT / "fixtures" / "README.md")
+    plant_counts = [int(value) for value in re.findall(r"\|\s*`[^`]+/`\s*\|[^|]+\|[^|]+\|\s*(\d+)\s*\|", fixtures_readme)]
+    expected_plants = sum(plant_counts)
+    if expected_plants != 16:
+        fail(f"fixtures/README.md should document 16 planted flaws, found {expected_plants}")
+
+    markers = []
+    for path in (ROOT / "fixtures").glob("**/*"):
+        if path.is_file() and path.suffix in {".py", ".go", ".ts"}:
+            markers.extend(re.findall(r"PLANTED:", read(path)))
+    if len(markers) < expected_plants:
+        fail(f"expected at least {expected_plants} PLANTED markers in fixtures, found {len(markers)}")
+
+
+def validate_forward_results() -> None:
+    for path in sorted((ROOT / "forward-test-results").glob("*.md")):
+        text = read(path)
+        if "Score:" not in text:
+            fail(f"{path.relative_to(ROOT)} has no Score line")
+        match = re.search(r"## Prompt\n\n```text\n(?P<prompt>.*?)\n```", text, re.DOTALL)
+        if not match or not match.group("prompt").strip():
+            fail(f"{path.relative_to(ROOT)} has an empty Prompt block")
+
+
+def validate_markdown_links() -> None:
+    for path in sorted(ROOT.glob("**/*.md")):
+        if any(part in {".git", "_reference", "node_modules", ".venv"} for part in path.parts):
+            continue
+        text = read(path)
+        for target in re.findall(r"\[[^\]]+\]\(([^)]+)\)", text):
+            if (
+                "://" in target
+                or target.startswith("#")
+                or target.startswith("mailto:")
+                or target.startswith("app://")
+            ):
+                continue
+            target_path = target.split("#", 1)[0]
+            if not target_path:
+                continue
+            resolved = (path.parent / target_path).resolve()
+            if not resolved.exists():
+                fail(f"{path.relative_to(ROOT)} links to missing path: {target}")
+
+
+def main() -> None:
+    validate_skill()
+    validate_rules()
+    validate_fixtures()
+    validate_forward_results()
+    validate_markdown_links()
+    print("validate_repo: ok")
+
+
+if __name__ == "__main__":
+    main()

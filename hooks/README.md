@@ -4,7 +4,7 @@
 just-edited backend file (`.py`, `.go`, `.ts/.js`) and feeds at most **5**
 findings back to the agent as additional context.
 
-Contract (CLAUDE_HANDOFF.md task 4):
+Contract (`../docs/CLAUDE_HANDOFF.md` task 4):
 
 - project-local tools first: `uv run`/`poetry run` ruff, `go vet`,
   `pnpm exec`/`yarn exec`/`npx --no-install` eslint

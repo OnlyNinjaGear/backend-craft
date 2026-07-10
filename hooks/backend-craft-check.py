@@ -3,7 +3,7 @@
 
 Runs cheap checkers on a just-edited backend file and surfaces at most
 MAX_FINDINGS findings to the agent as additional context. Design rules
-(see CLAUDE_HANDOFF.md task 4 and CHECKERS.md):
+(see docs/CLAUDE_HANDOFF.md task 4 and docs/CHECKERS.md from the repository root):
 
 - project-local tools first (uv/poetry run ruff, go vet, pnpm/yarn/npx eslint)
 - Semgrep backend-craft pack as the gap-filler, changed file only

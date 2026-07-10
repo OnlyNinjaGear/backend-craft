@@ -19,8 +19,8 @@ Isolation rules (learned 2026-07-10 the hard way):
   ("add an endpoint...") make agents edit the fixture in place, which destroys
   planted flaws and contaminates concurrently running tests.
 - Tell the tested agent not to read grading materials: repo-root
-  `FAILURE_CARDS.md`, `FORWARD_TESTS.md`, `CHECKERS.md`, `CHANGELOG.md`,
-  `SOURCES.md`, `forward-test-results/`, `rules/`, and the fixture `README.md`.
+  `../FAILURE_CARDS.md`, `FORWARD_TESTS.md`, `CHECKERS.md`, `EVIDENCE_LOG.md`,
+  `SOURCES.md`, `../forward-test-results/`, `../rules/`, and the fixture `README.md`.
 - After any forward-test run, restore fixtures from a pristine snapshot and
   re-run the fixture test suites plus the Semgrep acceptance pass
   (`CHECKERS.md`) before trusting them again.

@@ -38,4 +38,4 @@ Rules:
 - Checker acceptance: run
   `uvx semgrep --config ../rules/semgrep/backend-craft.yml --no-git-ignore --exclude node_modules .`
   from this directory and compare hits against each README's table
-  (see `../CHECKERS.md` for which cards are intentionally not Semgrep-covered).
+  (see `../docs/CHECKERS.md` for which cards are intentionally not Semgrep-covered).

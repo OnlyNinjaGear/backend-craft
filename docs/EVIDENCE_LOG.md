@@ -3,7 +3,7 @@
 This is not a release changelog. It is the evidence log for rules that become
 stronger over time.
 
-Use [`FAILURE_CARDS.md`](FAILURE_CARDS.md) for the current card corpus.
+Use [`FAILURE_CARDS.md`](../FAILURE_CARDS.md) for the current card corpus.
 
 ## Entry format
 
@@ -22,7 +22,7 @@ Status: observed | production-tested | retired
 
 ## Promotion rule
 
-- one plausible source-backed risk: `draft` in `FAILURE_CARDS.md`
+- one plausible source-backed risk: `draft` in `../FAILURE_CARDS.md`
 - one real task failure: add entry here and mark card `observed`
 - repeated failure or forward-test proof: mark card `production-tested`
 - noisy or harmful rule: mark card `retired` and explain why
@@ -34,7 +34,7 @@ Status: observed | production-tested | retired
 Context: external Codex re-review of commits f2e346e/afa85c5 plus fresh
 artifacts. Five findings, all verified and fixed.
 Artifact: `forward-test-results/0*.md`, `hooks/backend-craft-check.py`,
-`hooks/test-hook.sh`, status docs, `FAILURE_CARDS.md`.
+`../hooks/test-hook.sh`, status docs, `../FAILURE_CARDS.md`.
 Expected: previous remediation complete; hook contract airtight.
 Why the agent likely failed (per finding):
 1. P1 confirmed — round-1 result files 001-014 still had empty Prompt blocks
@@ -146,11 +146,11 @@ Status: observed; `db-transaction-around-network-call` (104) and
 
 ## 2026-07-10 - forward-test-round-1
 
-Context: 14 blind forward tests (FORWARD_TESTS.md) run by fresh subagents
+Context: 14 blind forward tests (`FORWARD_TESTS.md`) run by fresh subagents
 against the skill, scored by separate judges. Mean 3.86/4; twelve 4s, two 3s;
 zero generic-advice answers. Full transcripts in `forward-test-results/`.
 Artifact: `.claude/skills/backend-craft/` (SKILL.md + references).
-Expected: every expected behavior in FORWARD_TESTS.md hit.
+Expected: every expected behavior in `FORWARD_TESTS.md` hit.
 Why the agent likely failed (the misses):
 - 004: task said "payment", never "transaction" — persistence-migrations.md
   never loaded, so transaction-around-network-call and outbox went unmentioned.
@@ -181,7 +181,7 @@ Why the agent likely failed: harness (this repo's process), not the tested
 agents — prompts lacked a read-only/copy constraint and the repo has no VCS
 snapshot.
 Failure card: none (process failure).
-Rule/reference changed: FORWARD_TESTS.md now has isolation rules: disposable
+Rule/reference changed: `FORWARD_TESTS.md` now has isolation rules: disposable
 copy or design-only phrasing, do-not-read grading materials, restore +
 re-verify after every run.
 Checker/test added: post-restore acceptance = 3 fixture test suites green +
@@ -258,7 +258,7 @@ Status: observed (checker-level evidence)
 
 Context: handoff item "framework-specific auth docs for the fixture stacks";
 admission bar = concrete card/verifier only, no generic advice.
-Artifact: `FAILURE_CARDS.md` (new card), `SOURCES.md` (3 rows),
+Artifact: `../FAILURE_CARDS.md` (new card), `SOURCES.md` (3 rows),
 `references/auth-tenancy-security.md` (non-negotiable + verifier line).
 Expected: auth guards cover every non-public route.
 Why the agent likely fails: registers the auth guard on a sub-scope assuming

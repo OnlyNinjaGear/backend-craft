@@ -15,10 +15,10 @@ You are continuing the backend-craft package in:
 
 Created:
 
-- `SOURCES.md`
+- `docs/SOURCES.md`
 - `FAILURE_CARDS.md`
-- `SKILL_ARCHITECTURE.md`
-- `FORWARD_TESTS.md`
+- `docs/ARCHITECTURE.md`
+- `docs/FORWARD_TESTS.md`
 - `.claude/skills/backend-craft/SKILL.md`
 - `.claude/skills/backend-craft/references/*.md`
 - `.claude/skills/backend-craft/references/library-decisions.md`

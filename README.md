@@ -1,167 +1,139 @@
 # backend-craft
 
-`backend-craft` is a backend skill package for Claude Code/Codex-style agents.
-Its goal is not to repeat "write good backend code". Its goal is to prevent the
-production failures agents are most likely to introduce while building,
-retrofitting, or hardening backend services.
+`backend-craft` is a Claude Code/Codex skill package for backend engineering.
+It is designed to stop agents from shipping plausible backend code that fails
+under production conditions.
 
-Supported focus areas:
+It is not a style guide and not a language encyclopedia. The skill routes work
+by **failure surface** first:
 
-- Python, Go, TypeScript/Node
-- Postgres, MongoDB
-- API contracts, auth, tenancy, security
-- migrations, transactions, indexes
-- retries, timeouts, queues, workers, idempotency
-- observability, tests, CI, review
+- API contracts and compatibility
+- authorization, tenancy, PII, secrets, SSRF
+- persistence, migrations, transactions, indexes
+- retries, timeouts, queues, workers, cancellation, idempotency
+- observability, tests, CI, review discipline
+- Python, Go, and TypeScript/Node language adapters
 
-## Current direction
+Current release: **v0.1 frozen**. Further source digestion and rule promotion
+are backlog work unless explicitly reopened.
 
-The earlier plan split the package into seven large skills:
-
-- `backend-philosophy`
-- `clean-code`
-- `database-backend`
-- `backend-reviewer`
-- `python-backend`
-- `go-backend`
-- `ts-backend`
-
-That shape is understandable, but it pushes the project toward a typical
-checklist/wiki. The current direction is different:
+## What Is Included
 
 ```text
-.claude/skills/backend-craft/
-├── SKILL.md                         # router skill
-└── references/
-    ├── api-contracts.md
-    ├── auth-tenancy-security.md
-    ├── persistence-migrations.md
-    ├── reliability-async.md
-    ├── observability-ops.md
-    ├── testing-verification.md
-    ├── library-decisions.md
-    ├── stack-recipes.md
-    ├── codebase-fit.md
-    └── language-adapters.md
+.claude/skills/backend-craft/      # the installable skill
+  SKILL.md                         # router workflow
+  references/                      # risk-domain reference packs
+rules/semgrep/backend-craft.yml    # high-confidence Semgrep checks
+hooks/                             # optional bounded PostToolUse hook
+fixtures/                          # intentionally flawed backend fixtures
+forward-test-results/              # skill evaluation transcripts
+docs/                              # architecture, evidence, source map
+FAILURE_CARDS.md                   # failure-card corpus
 ```
 
-The top-level split is by production failure surface, not language. Language
-rules are adapters loaded after the relevant risk domain.
+## Install The Skill
 
-## Modes
+Use it as a project-local Claude Code skill:
 
-### Start mode
+```bash
+mkdir -p /path/to/your-project/.claude/skills
+cp -R .claude/skills/backend-craft /path/to/your-project/.claude/skills/
+```
 
-For a new backend or stack choice. Produces architecture defaults for API
-contracts, auth/tenant model, database/migrations, library choices, reliability,
-observability, tests, and CI.
+Then ask Claude Code to use `backend-craft` when building, reviewing, hardening,
+or choosing a backend stack.
 
-### Retrofit mode
+Example prompts:
 
-For attaching to an existing backend. Inventories framework, package manager,
-DB, migrations, tests, CI, and produces a staged hardening plan.
+```text
+Use backend-craft to review this backend for production risks.
+```
 
-### Harden mode
+```text
+Use backend-craft to design the backend foundation for a small B2B SaaS.
+```
 
-For reviewing or improving an entire backend. Findings are ordered by blast
-radius and require file:line, failure card, fix shape, and verifier.
+```text
+Use backend-craft while adding this mutating endpoint. Clients may retry.
+```
 
-### Continue mode
+## Optional Hook
 
-For ordinary feature work. The agent runs an Impact Read, loads only relevant
-references, implements, then proves the changed behavior.
+The optional hook runs cheap file-level checks after edits and feeds at most
+five advisory findings back to the agent. It always exits `0` and never claims a
+clean checker run means the backend is safe.
 
-## Knowledge model
+See [hooks/README.md](hooks/README.md).
 
-The atomic unit is a **failure card**, not a best-practice paragraph.
+## Validation Status
 
-Each card has:
+v0.1 contains:
 
-- trigger
-- model failure
-- blast radius
-- detection signature
-- safe pattern
-- verifier
-- escape hatch
-- sources
+- 39 failure cards, including 15 `production-tested` cards
+- 13 Semgrep rules: 2 `production-tested`, 11 `fixture-tested`, 0 `draft`
+- 3 runnable fixture projects with 16 planted flaws
+- 3 rounds of forward tests
+- real-backend validation on a mixed NestJS/Go/Python monorepo
+- a bounded hook with 14/14 acceptance assertions
 
-See [`FAILURE_CARDS.md`](FAILURE_CARDS.md).
+Status details live in [docs/CHECKERS.md](docs/CHECKERS.md) and
+[docs/EVIDENCE_LOG.md](docs/EVIDENCE_LOG.md).
 
-## Source map
+## Run Checks Locally
 
-Primary sources are tracked in [`SOURCES.md`](SOURCES.md). A source is admitted
-only if it can produce a failure card, playbook step, or checker. Current source
-families include OWASP, OpenAPI/JSON Schema, Google AIP, Stripe idempotency,
-Google SRE, AWS/Azure reliability patterns, PostgreSQL, MongoDB, Python, Go,
-Node/TypeScript, FastAPI, Django/DRF, SQLAlchemy/Alembic, Pydantic, chi, pgx,
-sqlc, Fastify, NestJS, Zod, Drizzle, Kysely, Prisma, BullMQ, Semgrep, ast-grep,
-CodeQL, Pact, Testcontainers, and oasdiff.
+Repository sanity checks:
 
-## Implementation status
+```bash
+python3 -m pip install pyyaml
+python3 scripts/validate_repo.py
+```
 
-Created:
+Fixture suites:
 
-- router skill: [`.claude/skills/backend-craft/SKILL.md`](.claude/skills/backend-craft/SKILL.md)
-- risk references: [`.claude/skills/backend-craft/references/`](.claude/skills/backend-craft/references/)
-- library decision layer: [`.claude/skills/backend-craft/references/library-decisions.md`](.claude/skills/backend-craft/references/library-decisions.md)
-- stack recipes: [`.claude/skills/backend-craft/references/stack-recipes.md`](.claude/skills/backend-craft/references/stack-recipes.md)
-- source map: [`SOURCES.md`](SOURCES.md)
-- initial failure-card corpus: [`FAILURE_CARDS.md`](FAILURE_CARDS.md)
-- architecture notes: [`SKILL_ARCHITECTURE.md`](SKILL_ARCHITECTURE.md)
-- forward-test prompts: [`FORWARD_TESTS.md`](FORWARD_TESTS.md)
-- handoff instructions: [`CLAUDE_HANDOFF.md`](CLAUDE_HANDOFF.md)
-- checker notes: [`CHECKERS.md`](CHECKERS.md)
-- Semgrep rules (fixture-tested): [`rules/semgrep/backend-craft.yml`](rules/semgrep/backend-craft.yml)
-- fixture projects (3 stacks, 16 planted flaws): [`fixtures/`](fixtures/)
-- forward-test results (round 1, 2026-07-10, mean 3.86/4): [`forward-test-results/`](forward-test-results/)
-- evidence log: [`CHANGELOG.md`](CHANGELOG.md)
+```bash
+cd fixtures/python-fastapi && uv run pytest -q
+cd ../go-http && go vet ./... && go test ./...
+cd ../ts-fastify && pnpm install --frozen-lockfile && pnpm typecheck && pnpm test
+```
 
-Status (2026-07-10):
+Semgrep pack:
 
-- forward-test round 1: 14/14 blind tests, mean 3.86/4; routing fixes applied
-  from the misses
-- forward-test round 2 (isolated fixture copies, leak-stripped): mean 3.93/4,
-  13/14 round-1 misses closed — both round-1 3-scores (payment transaction
-  boundary, unbounded CSV export) fixed by the routing changes; one new
-  routing-discipline gap (testing-verification.md) fixed in SKILL.md
-- forward-test round 3 (regression round): both 114-style tasks 4/4 with the
-  round-2 regression closed; proof-contract hard gates generalized (SQL gate +
-  pre-report diff-vs-routing-table re-scan)
-- 15 cards `production-tested` with test ids in their Status lines
-- Semgrep pack executed and narrowed against a probe corpus + fixtures:
-  13/13 detectable plants caught, 0 false positives; the TS floating-promise
-  rule was retired in favor of type-aware eslint; the two later-added Go
-  server-timeout rules promoted `draft` → `fixture-tested` on 2026-07-10 via a
-  go-http fixture plant (`ops.go`, 2/2 caught, 0 FP); see CHECKERS.md
-- pack + hook validated on a real monorepo (henry: NestJS admin API, Go
-  Temporal workers, Python workers): 49 findings sample-verified, 0
-  wrong-match FPs; two rules with real TPs promoted to production-tested;
-  one monorepo hook bug found and fixed (eslint/lockfile at workspace root)
-- repo is now a git repository; fixtures protected by baseline commit
-- forward-test isolation rules added after round-1 tested agents mutated
-  fixtures in place (see CHANGELOG.md and FORWARD_TESTS.md)
+```bash
+uvx semgrep --config rules/semgrep/backend-craft.yml --no-git-ignore --exclude node_modules .
+```
 
-Also done:
+Hook acceptance tests:
 
-- bounded PostToolUse hook: [`hooks/`](hooks/) — project-local tools first,
-  max 5 findings, session dedup, always exit 0, never claims safety;
-  14/14 acceptance assertions
+```bash
+hooks/test-hook.sh
+```
 
-Not done yet:
+## Documentation
 
-- most rules are `fixture-tested`, not `production-tested`: the henry run
-  produced real TPs only for `sync-fs-in-code` and `swallowed-exception-pass`;
-  the rest ran clean there (FN-probes confirmed true negatives), so they wait
-  for a real backend that actually contains their target constructs
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — skill architecture and routing model
+- [FAILURE_CARDS.md](FAILURE_CARDS.md) — failure-card corpus
+- [docs/CHECKERS.md](docs/CHECKERS.md) — checker status and validation records
+- [docs/SOURCES.md](docs/SOURCES.md) — admitted source map
+- [docs/FORWARD_TESTS.md](docs/FORWARD_TESTS.md) — forward-test protocol
+- [docs/EVIDENCE_LOG.md](docs/EVIDENCE_LOG.md) — evidence/promotion log
+- [fixtures/README.md](fixtures/README.md) — fixture corpus
 
-## Next build order
+## Development Boundary
 
-1. Continue source digestion per SOURCES.md high-value gaps.
-2. Promote remaining rules to `production-tested` opportunistically — when a
-   real backend with their target constructs shows up, not by hunting for one.
-3. Do not split into language-specific skills unless future forward tests
-   prove the router insufficient.
+Do not expand the skill casually. New material should enter only when it can
+produce a failure card, verifier, checker, or source-backed playbook step.
 
-Do not write large language-specific skills until the failure cards prove what
-language-specific knowledge is actually needed.
+Backlog items are intentionally deferred:
+
+- Flyway/Liquibase source digestion
+- Kafka consumer semantics
+- Sidekiq-class queue patterns
+- opportunistic promotion of remaining fixture-tested Semgrep rules
+
+Do not split this into language-specific skills unless future forward tests
+prove the router insufficient.
+
+## License
+
+No open-source license has been selected yet. Choose and add a license before
+publishing this repository publicly.
