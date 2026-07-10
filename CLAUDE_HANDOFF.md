@@ -1,5 +1,10 @@
 # Handoff for Claude Code
 
+**FROZEN at v0.1 (2026-07-10, owner decision).** Development is stopped.
+Backlog (do NOT do unless the owner explicitly reopens work): source
+digestion (Flyway/Liquibase, Kafka, Sidekiq-class patterns), promotion of
+remaining rules to `production-tested`. Bug fixes on request only.
+
 You are continuing the backend-craft package in:
 
 ```text
