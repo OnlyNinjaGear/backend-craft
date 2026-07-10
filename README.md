@@ -125,6 +125,9 @@ Status (2026-07-10):
   13/14 round-1 misses closed — both round-1 3-scores (payment transaction
   boundary, unbounded CSV export) fixed by the routing changes; one new
   routing-discipline gap (testing-verification.md) fixed in SKILL.md
+- forward-test round 3 (regression round): both 114-style tasks 4/4 with the
+  round-2 regression closed; proof-contract hard gates generalized (SQL gate +
+  pre-report diff-vs-routing-table re-scan)
 - 15 cards `production-tested` with test ids in their Status lines
 - Semgrep pack executed and narrowed against a probe corpus + fixtures:
   13/13 detectable plants caught, 0 false positives; the TS floating-promise
@@ -133,21 +136,24 @@ Status (2026-07-10):
 - forward-test isolation rules added after round-1 tested agents mutated
   fixtures in place (see CHANGELOG.md and FORWARD_TESTS.md)
 
+Also done:
+
+- bounded PostToolUse hook: [`hooks/`](hooks/) — project-local tools first,
+  max 5 findings, session dedup, always exit 0, never claims safety;
+  14/14 acceptance assertions
+
 Not done yet:
 
-- no hook script yet (rule corpus now proven enough to start)
 - Semgrep pack not yet validated on a real backend (`production-tested` for
   rules requires one)
 
 ## Next build order
 
-1. Implement the bounded hook (project-local tools first, max 5 findings,
-   dedup, always exit 0 — see CLAUDE_HANDOFF.md task 4).
-2. Validate the Semgrep pack on at least one real backend; promote rule
+1. Validate the Semgrep pack + hook on at least one real backend; promote rule
    statuses.
-3. Optional round 3: single regression test for 114 (write-tests task) to
-   confirm the new testing-row signals + proof-contract clause fire.
-4. Continue source digestion per SOURCES.md high-value gaps.
+2. Continue source digestion per SOURCES.md high-value gaps.
+3. Do not split into language-specific skills unless future forward tests
+   prove the router insufficient.
 
 Do not write large language-specific skills until the failure cards prove what
 language-specific knowledge is actually needed.

@@ -98,6 +98,11 @@ One change often matches several rows. Load every matched row, not the first —
 a concurrency change that also adds a response field triggers both
 `reliability-async.md` and `api-contracts.md`.
 
+Routing is not a one-shot decision at the start. Before the final response,
+re-scan the actual diff against this table: every row the diff matches must
+have its reference in your files-read list, including rows that only started
+matching mid-task (e.g. a SQL fix discovered while writing tests).
+
 | Signal | Read |
 |---|---|
 | endpoint, schema, status code, DTO, response field added/removed, webhook, public response | `references/api-contracts.md` |
@@ -127,7 +132,9 @@ Running a command whose output you did not inspect does not count. Before
 reporting, re-verify the "files changed" list against the working tree —
 signatures, arity, and new-vs-modified status must match reality, not memory.
 If the change adds or modifies tests, `references/testing-verification.md`
-must appear in the files you read.
+must appear in the files you read. If the change adds, fixes, or parameterizes
+SQL/query construction, `references/persistence-migrations.md` must appear in
+the files you read.
 
 ## Severity guide
 

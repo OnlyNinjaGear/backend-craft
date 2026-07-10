@@ -60,8 +60,11 @@ testing-verification.md) fixed via routing signals + proof-contract clause.
 Results in `forward-test-results/1xx-*.md`. Repo is now git — snapshot/restore
 is `git status` + `git checkout` instead of transcript reconstruction.
 
-Optional round 3: one regression test for 114-style tasks (a "write tests for
-X" prompt) to confirm the new testing-row signals fire.
+Round 3 — DONE (2026-07-10): 301 write-tests + 302 rewrite-retest, both 4/4,
+regression closed (testing-verification.md loaded in both; new SQL signal
+fired in 302). 301 exposed the mid-task routing gap-class; fixed via SQL hard
+gate in the proof contract + mandatory pre-report diff-vs-routing re-scan.
+Results in `forward-test-results/30x-*.md`.
 
 ### 2. Rule packs — DONE for the high-confidence set (2026-07-10)
 
@@ -84,7 +87,13 @@ per-fixture READMEs list expected failures. `fixtures/README.md` has the
 acceptance procedure. Treat the current tree as the pristine baseline; snapshot
 before any forward-test run.
 
-### 4. Implement a bounded hook — NOW UNBLOCKED
+### 4. Implement a bounded hook — DONE (2026-07-10)
+
+`hooks/backend-craft-check.py` + `hooks/test-hook.sh` (14/14 assertions pass)
++ `hooks/README.md` wiring docs. All six contract points implemented:
+project-local first, max 5 findings, session dedup, always exit 0, one-time
+no-checker warning, never claims safety. Not wired into this repo's settings
+(fixtures are intentionally flawed); consumer projects wire it per README.
 
 The rule corpus is now proven on fixtures. When implementing:
 

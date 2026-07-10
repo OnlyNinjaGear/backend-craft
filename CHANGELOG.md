@@ -29,6 +29,50 @@ Status: observed | production-tested | retired
 
 ## Entries
 
+## 2026-07-10 - forward-test-round-3
+
+Context: targeted regression round for the round-2 miss (test-writing without
+`testing-verification.md`). Two 114-style tasks on fresh leak-stripped copies:
+301 "write tests for search + user update", 302 exact rerun of the NestJS
+rewrite question. Results in `forward-test-results/30x-*.md`.
+Artifact: `.claude/skills/backend-craft/SKILL.md`.
+Expected: the round-2 fixes (testing routing signals + proof-contract gate)
+fire; no recurrence.
+Outcome: both 4/4, both regression_closed. 302 clean sweep — zero misses:
+testing-verification.md loaded for the 5 new regression tests AND
+persistence-migrations.md fired via the new "fixing SQL injection" signal.
+301 passed all FOCUS items (differential pre-fix test run proving the tests
+catch the planted bugs; judge reproduced 27/27 + clean typecheck) but exposed
+the same gap-class on a different path: persistence-migrations.md not loaded
+when the SQL fix emerged mid-task, i.e. after the initial Impact Read chose
+references.
+Failure card: none new.
+Rule/reference changed: SKILL.md — proof contract gains a SQL hard gate
+(mirror of the testing gate), and the routing section now requires a
+pre-report re-scan of the actual diff against the table (closes the
+class: rows that start matching mid-task).
+Checker/test added: none (semantic).
+Status: observed. Hard gates demonstrably work where routing-table matching
+alone does not (302 proved the round-2 gates; 301's miss was on the one row
+without a gate at the time).
+
+## 2026-07-10 - errgroup-panic-claim-corrected
+
+Context: round-2 judge (test 109) asserted errgroup >= v0.9.0 re-panics on the
+waiting goroutine; the claim entered `language-adapters.md`. External review
+(Codex) flagged it for verification.
+Artifact: `references/language-adapters.md` Goroutines section.
+Expected: library claims verified against source before entering references.
+Why it was wrong: x/sync v0.22.0 `errgroup.go` contains an explicit design
+comment REJECTING panic propagation (delays panics, hides stacks from crash
+tooling, deadlock risk; issues #53757, #74275, #74304, #74306). Verified in
+the module source, not from memory.
+Rule/reference changed: section rewritten — errgroup does NOT propagate
+panics; goroutines that may panic need their own defer/recover.
+Lesson recorded: judge-suggested edits that assert library behavior go through
+the same official-docs/source gate as any dependency guidance.
+Status: observed
+
 ## 2026-07-10 - forward-test-round-2
 
 Context: 14 tests rerun on disposable fixture copies (grading markers and
