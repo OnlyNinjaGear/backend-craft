@@ -1,0 +1,5 @@
+id,orgId,projectId,amount,currency
+t1,org1,p1,1200,USD
+t2,org1,p2,800,USD
+t3,org2,p3,500,EUR
+t4,org1,p1,300,USD

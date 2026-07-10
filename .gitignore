@@ -1,0 +1,11 @@
+# external reference clones (own git repos)
+_reference/
+# dependency/venv dirs
+node_modules/
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+.DS_Store
+# session tooling
+.zcode/

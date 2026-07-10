@@ -1,0 +1,18 @@
+[project]
+name = "python-fastapi-fixture"
+version = "0.1.0"
+description = "Intentionally flawed FastAPI project-tracker fixture for forward-testing the backend-craft code-review skill and Semgrep rules."
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi",
+    "httpx",
+    "pytest",
+    "uvicorn",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

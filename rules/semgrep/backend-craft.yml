@@ -1,0 +1,224 @@
+rules:
+  - id: backend-craft.python.swallowed-exception-pass
+    languages: [python]
+    severity: ERROR
+    message: "Swallowed broad exception. This maps to python-swallowed-exception: catch a specific exception, log with traceback if useful, or re-raise when the invariant is unknown."
+    metadata:
+      failure_card: python-swallowed-exception
+      status: fixture-tested
+      sources:
+        - https://docs.python.org/3/library/exceptions.html
+        - https://docs.python.org/3/library/logging.html
+    patterns:
+      - pattern: |
+          try:
+            ...
+          except Exception:
+            pass
+
+  - id: backend-craft.python.bare-except-pass
+    languages: [python]
+    severity: ERROR
+    message: "Bare except with pass hides BaseException and cancellation/system-exit paths. Use a specific exception and explicit recovery."
+    metadata:
+      failure_card: python-swallowed-exception
+      status: fixture-tested
+      sources:
+        - https://docs.python.org/3/library/exceptions.html
+    patterns:
+      - pattern: |
+          try:
+            ...
+          except:
+            pass
+
+  - id: backend-craft.python.sql-fstring-execute
+    languages: [python]
+    severity: ERROR
+    message: "SQL built with an interpolated f-string passed to execute(). This maps to sql-string-concat: parameterize values and allowlist dynamic identifiers."
+    metadata:
+      failure_card: sql-string-concat
+      status: fixture-tested
+      sources:
+        - https://cwe.mitre.org/data/definitions/89.html
+    pattern-either:
+      - pattern: $CUR.execute(f"...{$X}...", ...)
+      - pattern: await $CUR.execute(f"...{$X}...", ...)
+      - pattern: $CUR.executemany(f"...{$X}...", ...)
+      - pattern: $CUR.execute(f"...{$X}..." f"...", ...)
+      - pattern: $CUR.execute(f"..." f"...{$X}...", ...)
+
+  - id: backend-craft.python.sql-format-or-concat-execute
+    languages: [python]
+    severity: ERROR
+    message: "SQL string built with %/.format()/+ passed to execute(). Parameterize values; allowlist dynamic identifiers."
+    metadata:
+      failure_card: sql-string-concat
+      status: fixture-tested
+      sources:
+        - https://cwe.mitre.org/data/definitions/89.html
+    pattern-either:
+      - pattern: $CUR.execute("..." % $X, ...)
+      - pattern: $CUR.execute("..." % (...), ...)
+      - pattern: $CUR.execute("...".format(...), ...)
+      - pattern: $CUR.execute("..." + $X, ...)
+      - pattern: $CUR.execute("..." + $X + $Y, ...)
+      - pattern: $CUR.execute($X + "..." + $Y, ...)
+
+  - id: backend-craft.go.sql-sprintf-query
+    languages: [go]
+    severity: ERROR
+    message: "SQL built with fmt.Sprintf and passed to a query/exec method. This maps to sql-string-concat: use placeholder args; allowlist dynamic identifiers."
+    metadata:
+      failure_card: sql-string-concat
+      status: fixture-tested
+      sources:
+        - https://cwe.mitre.org/data/definitions/89.html
+        - https://go.dev/doc/database/sql-injection
+    pattern-either:
+      - pattern: $DB.Query(fmt.Sprintf($FMT, ...))
+      - pattern: $DB.QueryContext($CTX, fmt.Sprintf($FMT, ...))
+      - pattern: $DB.QueryRow(fmt.Sprintf($FMT, ...))
+      - pattern: $DB.QueryRowContext($CTX, fmt.Sprintf($FMT, ...))
+      - pattern: $DB.Exec(fmt.Sprintf($FMT, ...))
+      - pattern: $DB.ExecContext($CTX, fmt.Sprintf($FMT, ...))
+      - pattern: |
+          $Q := fmt.Sprintf($FMT, ...)
+          ...
+          $DB.Query($Q)
+      - pattern: |
+          $Q := fmt.Sprintf($FMT, ...)
+          ...
+          $DB.QueryContext($CTX, $Q)
+      - pattern: |
+          $Q := fmt.Sprintf($FMT, ...)
+          ...
+          $DB.Exec($Q)
+
+  - id: backend-craft.go.naked-goroutine-in-handler
+    languages: [go]
+    severity: WARNING
+    message: "Naked goroutine inside an HTTP handler. Check go-goroutine-without-lifecycle: request goroutines need context, error propagation, and bounded lifetime (errgroup or worker pool). Process-lifetime goroutines registered at startup are the escape hatch."
+    metadata:
+      failure_card: go-goroutine-without-lifecycle
+      status: fixture-tested
+      note: "Handler-scoped on purpose: goroutines in main()/setup are the card's escape hatch. Worker/job paths are not covered; review those manually."
+      sources:
+        - https://go.dev/doc/database/cancel-operations
+        - https://go.dev/doc/effective_go
+    patterns:
+      - pattern: |
+          go func(...) {
+            ...
+          }(...)
+      - pattern-either:
+          - pattern-inside: |
+              func $F($W http.ResponseWriter, $R *http.Request) { ... }
+          - pattern-inside: |
+              func ($RECV $T) $F($W http.ResponseWriter, $R *http.Request) { ... }
+          - pattern-inside: |
+              func($W http.ResponseWriter, $R *http.Request) { ... }
+
+  - id: backend-craft.go.context-background-in-handler
+    languages: [go]
+    severity: WARNING
+    message: "context.Background() inside an HTTP handler detaches work from request cancellation. Propagate r.Context() instead. Intentional post-response work needs an owned lifecycle, not a detached context."
+    metadata:
+      failure_card: timeout-without-cancellation-propagation
+      status: fixture-tested
+      note: "Handler-scoped on purpose: context.Background() in main()/setup is legitimate."
+      sources:
+        - https://go.dev/doc/database/cancel-operations
+    patterns:
+      - pattern: context.Background()
+      - pattern-either:
+          - pattern-inside: |
+              func $F($W http.ResponseWriter, $R *http.Request) { ... }
+          - pattern-inside: |
+              func ($RECV $T) $F($W http.ResponseWriter, $R *http.Request) { ... }
+          - pattern-inside: |
+              func($W http.ResponseWriter, $R *http.Request) { ... }
+
+  - id: backend-craft.go.listen-and-serve-no-timeouts
+    languages: [go]
+    severity: WARNING
+    message: "Package-level http.ListenAndServe uses a default http.Server: every timeout is zero, which per Go docs means no timeout. Slow clients can hold connections and goroutines forever. Construct &http.Server{ReadHeaderTimeout: ...} instead. Escape hatch: localhost-only dev/debug listeners."
+    metadata:
+      failure_card: go-http-server-no-timeouts
+      status: draft
+      sources:
+        - https://pkg.go.dev/net/http#Server
+    pattern-either:
+      - pattern: http.ListenAndServe($ADDR, $H)
+      - pattern: http.ListenAndServeTLS($ADDR, $CERT, $KEY, $H)
+
+  - id: backend-craft.go.server-missing-read-timeouts
+    languages: [go]
+    severity: WARNING
+    message: "http.Server without ReadTimeout or ReadHeaderTimeout: zero means no timeout, so stalled clients hold connections indefinitely (slowloris). Set ReadHeaderTimeout at minimum. Escape hatch: localhost-only dev/debug listeners."
+    metadata:
+      failure_card: go-http-server-no-timeouts
+      status: draft
+      sources:
+        - https://pkg.go.dev/net/http#Server
+    patterns:
+      - pattern: "&http.Server{...}"
+      - pattern-not: "&http.Server{..., ReadTimeout: $T, ...}"
+      - pattern-not: "&http.Server{..., ReadHeaderTimeout: $T, ...}"
+
+  - id: backend-craft.ts.sql-template-query
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: "SQL query uses template literal interpolation. Parameterize values and allowlist dynamic identifiers."
+    metadata:
+      failure_card: sql-string-concat
+      status: fixture-tested
+      sources:
+        - https://cwe.mitre.org/data/definitions/89.html
+    pattern-either:
+      - pattern: $DB.query(`...${...}...`, ...)
+      - pattern: $DB.execute(`...${...}...`, ...)
+
+  - id: backend-craft.ts.sql-string-concat-query
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: "SQL query built with string concatenation. Parameterize values and allowlist dynamic identifiers."
+    metadata:
+      failure_card: sql-string-concat
+      status: fixture-tested
+      sources:
+        - https://cwe.mitre.org/data/definitions/89.html
+    pattern-either:
+      - pattern: $DB.query("..." + $X, ...)
+      - pattern: $DB.execute("..." + $X, ...)
+
+  - id: backend-craft.ts.mass-assignment-request-body
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: "Request body mass assignment. Map only allowed fields; server-owned fields must be assigned server-side."
+    metadata:
+      failure_card: api-mass-assignment
+      status: fixture-tested
+      sources:
+        - https://owasp.org/API-Security/editions/2023/en/0xa3-broken-object-property-level-authorization/
+    pattern-either:
+      - pattern: Object.assign($TARGET, $REQ.body)
+      - pattern: $REPO.update($ID, $REQ.body)
+      - pattern: $MODEL.update($REQ.body)
+
+  - id: backend-craft.node.sync-fs-in-code
+    languages: [typescript, javascript]
+    severity: WARNING
+    message: "Synchronous filesystem call. In request paths this can block the Node event loop; use async/streaming or move work out of the handler. Startup/CLI use is the escape hatch."
+    metadata:
+      failure_card: event-loop-blocking
+      status: fixture-tested
+      note: "Fires on startup/CLI code too; the message names that escape hatch. Kept broad because handler detection in JS frameworks is unreliable."
+      sources:
+        - https://nodejs.org/learn/asynchronous-work/dont-block-the-event-loop
+    pattern-either:
+      - pattern: fs.readFileSync(...)
+      - pattern: fs.writeFileSync(...)
+      - pattern: fs.readdirSync(...)
+      - pattern: fs.statSync(...)
+      - pattern: fs.existsSync(...)
