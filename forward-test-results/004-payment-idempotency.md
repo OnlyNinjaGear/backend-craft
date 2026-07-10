@@ -15,7 +15,7 @@ Verifier quality (judge): Excellent. Named tests match the changed behavior exac
 ## Prompt
 
 ```text
-
+Add an endpoint that creates an order and calls a payment provider. Clients may retry on network failures.
 ```
 
 ## References loaded (from agent's 'Files read')

@@ -15,7 +15,7 @@ Verifier quality (judge): Strong: 10 targeted tests including an adversarial car
 ## Prompt
 
 ```text
-
+Add metrics and logs for a new webhook processor.
 ```
 
 ## References loaded (from agent's 'Files read')

@@ -11,7 +11,7 @@ event() { # $1=file_path $2=session
   printf '{"session_id":"%s","hook_event_name":"PostToolUse","tool_name":"Edit","tool_input":{"file_path":"%s"}}' "$2" "$1"
 }
 
-TMP=$(mktemp -d)
+TMP=$(mktemp -d) || { echo "FATAL: mktemp failed — cannot run the harness in this environment (results would be meaningless)"; exit 2; }
 trap 'rm -rf "$TMP"' EXIT
 
 # --- fixture-like flawed python project (no uv.lock -> no project-local) ---

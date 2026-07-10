@@ -15,7 +15,7 @@ Verifier quality (judge): Strong. Two-layer proof: (1) current-state proof actua
 ## Prompt
 
 ```text
-
+This service is messy. Should we move it to NestJS and rewrite the persistence layer?
 ```
 
 ## References loaded (from agent's 'Files read')

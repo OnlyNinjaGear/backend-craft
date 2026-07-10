@@ -15,7 +15,7 @@ Verifier quality (judge): Strong: matches the reference's verifier list exactly 
 ## Prompt
 
 ```text
-
+Add a non-null column with a default to the invoices table and backfill old rows. Invoices is our biggest, hottest table.
 ```
 
 ## References loaded (from agent's 'Files read')

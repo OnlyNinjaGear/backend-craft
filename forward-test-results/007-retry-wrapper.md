@@ -15,7 +15,7 @@ Verifier quality (judge): Strong. Real executed verifier: bounded retry, jitter 
 ## Prompt
 
 ```text
-
+Our external CRM API sometimes times out. Add retries around the call.
 ```
 
 ## References loaded (from agent's 'Files read')

@@ -70,7 +70,11 @@ Results in `forward-test-results/30x-*.md`.
 
 `rules/semgrep/backend-craft.yml` is fixture-tested: 13/13 detectable plants
 caught, 0 false positives on clean contrast code (run command and verification
-record in `CHECKERS.md`). The TS floating-promise Semgrep rule was retired —
+record in `CHECKERS.md`). The two later-added Go server-timeout rules are
+`draft` (probe-validated, no fixture plant). Real-backend validation (henry
+monorepo, 2026-07-10): `sync-fs-in-code` and `swallowed-exception-pass`
+promoted to `production-tested` on real true positives; remaining rules ran
+clean with FN-probes confirming the repo has no target constructs. The TS floating-promise Semgrep rule was retired —
 Semgrep matches subexpressions and cannot anchor JS statements; the card's
 verifier is type-aware `@typescript-eslint/no-floating-promises`.
 "Public route returning ORM/entity directly" was skipped: no stable mechanical

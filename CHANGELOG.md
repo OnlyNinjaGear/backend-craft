@@ -29,6 +29,46 @@ Status: observed | production-tested | retired
 
 ## Entries
 
+## 2026-07-10 - codex-re-review-round-2
+
+Context: external Codex re-review of commits f2e346e/afa85c5 plus fresh
+artifacts. Five findings, all verified and fixed.
+Artifact: `forward-test-results/0*.md`, `hooks/backend-craft-check.py`,
+`hooks/test-hook.sh`, status docs, `FAILURE_CARDS.md`.
+Expected: previous remediation complete; hook contract airtight.
+Why the agent likely failed (per finding):
+1. P1 confirmed — round-1 result files 001-014 still had empty Prompt blocks
+   (previous fix only covered 1xx). Filled from the round-1 script.
+2. P1 confirmed — hook crashed (exit 1) when no writable temp dir exists:
+   `state_paths()` was unguarded. Fixed: probe-write with fallback to
+   stateless mode (dedup degrades, findings still emitted), plus a global
+   catch-all exit-0 backstop; `test-hook.sh` now fails fast when `mktemp`
+   itself is broken. Verified: hostile `TMPDIR` -> rc=0 with findings.
+3. P2 confirmed — docs said "pack fixture-tested" while the two later-added
+   Go server-timeout rules are `draft`. Scope note added to CHECKERS/README/
+   HANDOFF instead of overclaiming.
+4. P2 confirmed — `go-goroutine-without-lifecycle` safe pattern named errgroup
+   without panic capture. Card now requires in-goroutine defer/recover and
+   cites the x/sync no-panic-propagation design (verified v0.22.0 source).
+5. P3 confirmed — no-local-checker warning claimed "Only the Semgrep
+   gap-filler ran" even when Semgrep was unavailable. `check_semgrep` now
+   reports whether it actually ran; the warning states "NOTHING checked this
+   edit" when true.
+Status: observed
+
+## 2026-07-10 - real-backend-validation-henry
+
+Context: pack + hook run read-only against the henry monorepo (NestJS admin
+API, Go Temporal workers, Python workers). Full record in `CHECKERS.md`
+"Real-backend validation record".
+Outcome: 49 findings, 0 parse errors, 0 wrong-match FPs; sample-verified TPs
+(sync fs in a @Put handler; documented-but-unmetered swallowed exception).
+`node.sync-fs-in-code` and `python.swallowed-exception-pass` promoted to
+production-tested. FN-probes confirmed silent rules are true negatives.
+Hook: found and fixed the monorepo eslint/lockfile-at-workspace-root detection
+bug; latency ~1.3-1.8s (Semgrep), ~8s cold go vet.
+Status: observed
+
 ## 2026-07-10 - forward-test-round-3
 
 Context: targeted regression round for the round-2 miss (test-writing without

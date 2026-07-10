@@ -15,7 +15,7 @@ Verifier quality (judge): Strong. Reproduced the P0 mass-assignment at HTTP 200 
 ## Prompt
 
 ```text
-
+We have a TypeScript API where handlers manually check request bodies with if statements. Recommend whether to keep that or introduce a validation library.
 ```
 
 ## References loaded (from agent's 'Files read')

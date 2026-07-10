@@ -15,7 +15,7 @@ Verifier quality (judge): Strong. Full suite independently reproduced at 58 pass
 ## Prompt
 
 ```text
-
+Return the new last_login_ip field on the user object so admins can see it.
 ```
 
 ## References loaded (from agent's 'Files read')

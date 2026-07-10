@@ -360,10 +360,10 @@ Triggered by: `go func()` in request/job/server path.
 Model failure: launches goroutine without context, errgroup, wait, panic recovery, or bounded lifetime.
 Blast radius: leaked work, ignored errors, process crash, data race.
 Detect: `go` statement not tied to `errgroup`, context, worker pool, or lifecycle manager.
-Safe pattern: `errgroup.WithContext`, bounded worker pool, explicit error propagation.
+Safe pattern: `errgroup.WithContext`, bounded worker pool, explicit error propagation; goroutines that may panic need their own `defer`/`recover` converting panic to error — errgroup does NOT propagate panics to `Wait` (rejected by design in x/sync source, verified v0.22.0).
 Verifier: cancellation test; goroutine count does not grow after request/job cancellation.
 Escape hatch: process-lifetime background goroutine registered in server lifecycle.
-Sources: Effective Go, Go context docs, golangci-lint linters.
+Sources: Effective Go, Go context docs, golangci-lint linters, x/sync errgroup source.
 
 ## go-ignored-error
 

@@ -131,7 +131,13 @@ Status (2026-07-10):
 - 15 cards `production-tested` with test ids in their Status lines
 - Semgrep pack executed and narrowed against a probe corpus + fixtures:
   13/13 detectable plants caught, 0 false positives; the TS floating-promise
-  rule was retired in favor of type-aware eslint (see CHECKERS.md)
+  rule was retired in favor of type-aware eslint; the two later-added Go
+  server-timeout rules are probe-validated `draft` (no fixture plant); see
+  CHECKERS.md
+- pack + hook validated on a real monorepo (henry: NestJS admin API, Go
+  Temporal workers, Python workers): 49 findings sample-verified, 0
+  wrong-match FPs; two rules with real TPs promoted to production-tested;
+  one monorepo hook bug found and fixed (eslint/lockfile at workspace root)
 - repo is now a git repository; fixtures protected by baseline commit
 - forward-test isolation rules added after round-1 tested agents mutated
   fixtures in place (see CHANGELOG.md and FORWARD_TESTS.md)

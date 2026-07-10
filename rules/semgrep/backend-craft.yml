@@ -5,7 +5,7 @@ rules:
     message: "Swallowed broad exception. This maps to python-swallowed-exception: catch a specific exception, log with traceback if useful, or re-raise when the invariant is unknown."
     metadata:
       failure_card: python-swallowed-exception
-      status: fixture-tested
+      status: production-tested
       sources:
         - https://docs.python.org/3/library/exceptions.html
         - https://docs.python.org/3/library/logging.html
@@ -212,7 +212,7 @@ rules:
     message: "Synchronous filesystem call. In request paths this can block the Node event loop; use async/streaming or move work out of the handler. Startup/CLI use is the escape hatch."
     metadata:
       failure_card: event-loop-blocking
-      status: fixture-tested
+      status: production-tested
       note: "Fires on startup/CLI code too; the message names that escape hatch. Kept broad because handler detection in JS frameworks is unreliable."
       sources:
         - https://nodejs.org/learn/asynchronous-work/dont-block-the-event-loop

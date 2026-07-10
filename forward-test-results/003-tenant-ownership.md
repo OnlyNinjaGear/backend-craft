@@ -15,7 +15,7 @@ Verifier quality (judge): Strong. Cited '.venv/bin/pytest -v, 12 passed' with ou
 ## Prompt
 
 ```text
-
+Add an endpoint to fetch a project by id for the current user.
 ```
 
 ## References loaded (from agent's 'Files read')

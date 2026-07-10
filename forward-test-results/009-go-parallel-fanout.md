@@ -15,7 +15,7 @@ Verifier quality (judge): Excellent. TestGetOrderFansOutConcurrently uses a 3-pa
 ## Prompt
 
 ```text
-
+In this Go service, parallelize calls to three downstream services in the request handler.
 ```
 
 ## References loaded (from agent's 'Files read')

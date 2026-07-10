@@ -15,7 +15,7 @@ Verifier quality (judge): Strong: pnpm test (17/17, output inspected) and tsc --
 ## Prompt
 
 ```text
-
+Add CSV export for all transactions from an HTTP endpoint in our TypeScript API.
 ```
 
 ## References loaded (from agent's 'Files read')

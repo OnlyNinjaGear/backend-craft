@@ -15,7 +15,7 @@ Verifier quality (judge): Strong. Baseline established by actually running and i
 ## Prompt
 
 ```text
-
+This backend already exists. Do not rewrite it. Inspect it and produce a staged hardening plan for the next 2 weeks.
 ```
 
 ## References loaded (from agent's 'Files read')

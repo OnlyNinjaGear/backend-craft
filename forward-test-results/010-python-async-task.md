@@ -15,7 +15,7 @@ Verifier quality (judge): Strong: 6 new tests each map to a specific reliability
 ## Prompt
 
 ```text
-
+In this Python async service, start a background enrichment task after each request.
 ```
 
 ## References loaded (from agent's 'Files read')

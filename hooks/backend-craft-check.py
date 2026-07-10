@@ -66,8 +66,17 @@ def find_up(start_dir, names):
 
 
 def state_paths(session_id: str):
-    base = os.path.join(tempfile.gettempdir(), "backend-craft-hook")
-    os.makedirs(base, exist_ok=True)
+    """Returns (seen, warned) state paths, or (None, None) when no writable
+    temp dir exists — dedup then degrades to per-event, never crashes."""
+    try:
+        base = os.path.join(tempfile.gettempdir(), "backend-craft-hook")
+        os.makedirs(base, exist_ok=True)
+        probe = os.path.join(base, ".w")
+        with open(probe, "w") as f:
+            f.write("")
+        os.remove(probe)
+    except OSError:
+        return None, None
     sid = hashlib.sha256(session_id.encode()).hexdigest()[:16]
     return (
         os.path.join(base, f"{sid}.seen"),
@@ -76,6 +85,8 @@ def state_paths(session_id: str):
 
 
 def load_lines(path):
+    if path is None:
+        return set()
     try:
         with open(path) as f:
             return set(line.strip() for line in f if line.strip())
@@ -84,6 +95,8 @@ def load_lines(path):
 
 
 def append_lines(path, lines):
+    if path is None:
+        return
     try:
         with open(path, "a") as f:
             for line in lines:
@@ -130,29 +143,51 @@ def check_go(file_path, project_dir):
 
 
 def check_ts(file_path, project_dir):
+    """Monorepo-aware: eslint may be declared (deps or a lint script) in any
+    package.json between the file and the workspace root, and the lockfile
+    usually lives at the workspace root only."""
     findings, local = [], False
     if not project_dir:
         return findings, local
-    pkg_json = os.path.join(project_dir, "package.json")
+    # walk up collecting package.json dirs until the lockfile root
+    pkg_dirs, lock_root, lock = [], None, None
+    d = project_dir
+    while True:
+        if os.path.exists(os.path.join(d, "package.json")):
+            pkg_dirs.append(d)
+        for lf in ("pnpm-lock.yaml", "yarn.lock", "package-lock.json"):
+            if lock_root is None and os.path.exists(os.path.join(d, lf)):
+                lock_root, lock = d, lf
+        if lock_root is not None:
+            break
+        parent = os.path.dirname(d)
+        if parent == d:
+            break
+        d = parent
     has_eslint = False
-    try:
-        with open(pkg_json) as f:
-            pkg = json.load(f)
-        deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
-        has_eslint = "eslint" in deps
-    except (OSError, json.JSONDecodeError):
-        pass
+    for pd in pkg_dirs:
+        try:
+            with open(os.path.join(pd, "package.json")) as f:
+                pkg = json.load(f)
+            deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
+            scripts = pkg.get("scripts", {}) or {}
+            if "eslint" in deps or any("eslint" in str(v) for v in scripts.values()):
+                has_eslint = True
+                break
+        except (OSError, json.JSONDecodeError):
+            continue
     if not has_eslint:
         return findings, local
-    if os.path.exists(os.path.join(project_dir, "pnpm-lock.yaml")) and shutil.which("pnpm"):
+    if lock == "pnpm-lock.yaml" and shutil.which("pnpm"):
         runner = ["pnpm", "exec", "eslint"]
-    elif os.path.exists(os.path.join(project_dir, "yarn.lock")) and shutil.which("yarn"):
+    elif lock == "yarn.lock" and shutil.which("yarn"):
         runner = ["yarn", "exec", "eslint"]
     elif shutil.which("npx"):
         runner = ["npx", "--no-install", "eslint"]
     else:
         return findings, local
-    rc, stdout, _ = run(runner + ["--format", "unix", file_path], cwd=project_dir)
+    # run from the workspace root: flat config and hoisted bins live there
+    rc, stdout, _ = run(runner + ["--format", "unix", file_path], cwd=lock_root or project_dir)
     if rc is not None and rc in (0, 1):
         local = True
         for line in stdout.splitlines():
@@ -163,27 +198,29 @@ def check_ts(file_path, project_dir):
 
 
 def check_semgrep(file_path):
-    """Gap-filler: backend-craft pack on the changed file only."""
+    """Gap-filler: backend-craft pack on the changed file only.
+    Returns (findings, ran) — ran is False when Semgrep was unavailable or
+    produced no usable output, so callers never overstate what executed."""
     findings = []
     rules = os.path.normpath(SEMGREP_RULES)
     if not os.path.exists(rules):
-        return findings
+        return findings, False
     if shutil.which("semgrep"):
         cmd = ["semgrep"]
     elif shutil.which("uvx"):
         cmd = ["uvx", "semgrep"]
     else:
-        return findings
+        return findings, False
     rc, stdout, _ = run(
         cmd + ["--config", rules, "--no-git-ignore", "--quiet", "--json",
                "--metrics", "off", "--disable-version-check", file_path]
     )
     if rc is None or not stdout:
-        return findings
+        return findings, False
     try:
         data = json.loads(stdout)
     except json.JSONDecodeError:
-        return findings
+        return findings, False
     for r in data.get("results", []):
         rule = r.get("check_id", "").split(".")[-1]
         line = r.get("start", {}).get("line", 0)
@@ -194,7 +231,7 @@ def check_semgrep(file_path):
         if card:
             display += f" (card: {card})"
         findings.append((key, display))
-    return findings
+    return findings, True
 
 
 # --- main -------------------------------------------------------------------
@@ -236,16 +273,22 @@ def main():
         findings, local = check_ts(file_path, project_dir)
         lang = "ts"
 
-    findings += check_semgrep(file_path)
+    semgrep_findings, semgrep_ran = check_semgrep(file_path)
+    findings += semgrep_findings
 
     messages = []
 
     if not local and lang not in warned:
         append_lines(warned_path, [lang])
+        gap = (
+            "Only the Semgrep gap-filler ran."
+            if semgrep_ran
+            else "The Semgrep gap-filler did not run either (semgrep/uvx unavailable or it failed), so NOTHING checked this edit."
+        )
         messages.append(
             f"backend-craft: no project-local {lang} checker found for this file "
-            "(looked for uv/poetry+ruff, go vet, or a project eslint). Only the "
-            "Semgrep gap-filler ran. Consider wiring the project's own linter; "
+            f"(looked for uv/poetry+ruff, go vet, or a project eslint). {gap} "
+            "Consider wiring the project's own linter; "
             "this warning shows once per session."
         )
 
@@ -277,4 +320,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except BaseException:
+        # advisory hook: any internal failure must never fail the tool call
+        sys.exit(0)

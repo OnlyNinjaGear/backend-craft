@@ -15,7 +15,7 @@ Verifier quality (judge): Strong. Full-suite run (29 passed) plus 11 targeted te
 ## Prompt
 
 ```text
-
+Implement a worker that consumes invoice events and emails customers.
 ```
 
 ## References loaded (from agent's 'Files read')
