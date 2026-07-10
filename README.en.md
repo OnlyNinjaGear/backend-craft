@@ -132,8 +132,3 @@ Backlog items are intentionally deferred:
 
 Do not split this into language-specific skills unless future forward tests
 prove the router insufficient.
-
-## License
-
-No open-source license has been selected yet. Choose and add a license before
-publishing this repository publicly.
