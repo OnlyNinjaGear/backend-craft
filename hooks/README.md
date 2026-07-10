@@ -34,7 +34,7 @@ Add to the target project's `.claude/settings.json` (or your user settings):
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /Users/oleg/Desktop/backend-skills/hooks/backend-craft-check.py"
+            "command": "python3 /absolute/path/to/backend-craft/hooks/backend-craft-check.py"
           }
         ]
       }

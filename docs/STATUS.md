@@ -9,8 +9,8 @@ or explicit owner-approved scope changes.
 
 - router skill: `../.claude/skills/backend-craft/SKILL.md`
 - 10 reference files under `../.claude/skills/backend-craft/references/`
-- 39 failure cards in `../FAILURE_CARDS.md`
-- 13 Semgrep rules in `../rules/semgrep/backend-craft.yml`
+- 41 failure cards in `../FAILURE_CARDS.md`
+- 16 Semgrep rules in `../rules/semgrep/backend-craft.yml`
 - 3 fixture projects with 16 planted flaws under `../fixtures/`
 - 30 forward-test result files across 3 rounds under `../forward-test-results/`
 - optional bounded PostToolUse hook under `../hooks/`
@@ -19,8 +19,12 @@ or explicit owner-approved scope changes.
 
 - Forward tests: 3 rounds; regression round closed the round-2 routing gap.
 - Failure cards: 15 cards are `production-tested`.
-- Semgrep rules: 2 rules are `production-tested`; 11 are `fixture-tested`; 0
-  rules remain `draft`.
+- Semgrep rules: 2 rules are `production-tested`; 11 are `fixture-tested`; 3
+  rules remain `draft` (the SQLAlchemy-`text()` and pgx-`Sprintf` SQL coverage
+  added on the `coverage-and-cards` branch, each with a persistent probe matrix).
+- Two new cards (`python-gather-partial-failure-leak`,
+  `pg-non-atomic-poll-queue-claim`) are `draft`, each backed by a runnable
+  reducer + test under `../tests/cards/`. Nothing was promoted on this branch.
 - Hook: 14/14 acceptance assertions; validated on a real mixed backend monorepo.
 
 ## Not Included

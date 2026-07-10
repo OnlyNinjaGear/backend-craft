@@ -222,3 +222,45 @@ rules:
       - pattern: fs.readdirSync(...)
       - pattern: fs.statSync(...)
       - pattern: fs.existsSync(...)
+
+  - id: backend-craft.python.sql-text-fstring
+    languages: [python]
+    severity: WARNING
+    message: "Interpolated f-string inside SQLAlchemy text(). Maps to sql-string-concat: bind values as parameters (:name); allowlist/quote dynamic identifiers. Escape hatch: quoted identifiers / DB-introspected / allowlisted fragments. Scope: relies on semgrep import resolution, so it matches sqlalchemy.text() reached via `import sqlalchemy`, `import sqlalchemy as sa`, or `from sqlalchemy import text`; a locally-defined text() or ui.text() is not matched. Known FN: text imported under an unusual alias/path may be missed."
+    metadata:
+      failure_card: sql-string-concat
+      status: draft
+      sources:
+        - https://cwe.mitre.org/data/definitions/89.html
+        - https://docs.sqlalchemy.org/en/latest/core/connections.html
+    pattern-either:
+      - pattern: sqlalchemy.text(f"...{$X}...")
+
+  - id: backend-craft.python.sql-text-format-or-concat
+    languages: [python]
+    severity: WARNING
+    message: "%/.format()/+ inside SQLAlchemy text(). Maps to sql-string-concat: use bind parameters; allowlist/quote dynamic identifiers. Same import-resolution scope and FN note as the f-string rule."
+    metadata:
+      failure_card: sql-string-concat
+      status: draft
+      sources:
+        - https://cwe.mitre.org/data/definitions/89.html
+    pattern-either:
+      - pattern: sqlalchemy.text("..." % $X)
+      - pattern: sqlalchemy.text("...".format(...))
+      - pattern: sqlalchemy.text("..." + $X)
+
+  - id: backend-craft.go.sql-sprintf-query-pgx
+    languages: [go]
+    severity: WARNING
+    message: "fmt.Sprintf passed INLINE to a pgx-style Query/QueryRow/Exec(ctx, ...). Maps to sql-string-concat: use placeholder args ($1); allowlist/quote dynamic identifiers. Escape hatch: only constant/allowlisted fragments interpolated, values as bind params. Scope: INLINE fmt.Sprintf only; a variable that received fmt.Sprintf is NOT matched (avoids a false positive when it is reassigned to a constant before the call). Known FN: pre-built query strings."
+    metadata:
+      failure_card: sql-string-concat
+      status: draft
+      sources:
+        - https://cwe.mitre.org/data/definitions/89.html
+        - https://pkg.go.dev/github.com/jackc/pgx
+    pattern-either:
+      - pattern: $DB.Query($CTX, fmt.Sprintf($FMT, ...), ...)
+      - pattern: $DB.QueryRow($CTX, fmt.Sprintf($FMT, ...), ...)
+      - pattern: $DB.Exec($CTX, fmt.Sprintf($FMT, ...), ...)

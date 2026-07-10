@@ -29,6 +29,57 @@ Status: observed | production-tested | retired
 
 ## Entries
 
+## 2026-07-10 - coverage-and-cards-fix-pass-after-hostile-review
+
+Context: `backend-craft/coverage-and-cards` branch. An adversarial Codex review
+of an earlier version of this branch found the new material was overclaimed:
+the two new Semgrep SQL rules matched ANY `text(...)`/`Sprintf(...)`, two cards
+were promoted to `observed` without a defensible in-folder occurrence, and doc
+counts drifted. This pass narrows the rules to something precise, keeps every
+new card and rule at `draft`, and adds runnable proof for each card.
+Artifact: `rules/semgrep/backend-craft.yml` (3 new rules, all `draft`),
+`rules/semgrep/tests/` (probe corpus + `check_probes.py`), `tests/cards/`
+(gather + PostgreSQL reducers and tests), `FAILURE_CARDS.md` (2 new cards),
+`README.md`, `README.en.md`, `docs/STATUS.md`, `scripts/validate_repo.py`,
+`hooks/README.md`.
+Expected: rules fire on the real SQL-building shape and stay silent on the safe
+shape (proven by a persistent probe matrix, not a claim); each new card carries
+a reducer that actually reproduces the failure; no status inflated on evidence
+that cannot be checked from inside this folder.
+Why the agent likely failed (the two new cards' failure modes):
+- `python-gather-partial-failure-leak`: an agent reads `asyncio.gather` as an
+  atomic batch — assumes a raise cancels the siblings and leaves no partial
+  writes. Neither holds; even `TaskGroup` (which does cancel) cannot roll back a
+  side effect committed before the cancel point.
+- `pg-non-atomic-poll-queue-claim`: an agent claims a job with `SELECT ...
+  pending` then a separate `UPDATE ... running` with no lock/guard; two workers
+  read the same row and both process it. The defect is the non-atomic claim, not
+  "missing SKIP LOCKED" specifically.
+Failure card: `python-gather-partial-failure-leak` (new, draft),
+`pg-non-atomic-poll-queue-claim` (new, draft); the 3 new rules map to the
+existing `sql-string-concat` card (unchanged).
+Rule/reference changed: the 3 new rules are scoped so they only match the real
+sink — the Python rules rely on Semgrep import resolution to match
+`sqlalchemy.text(...)` (a local `text()`/`ui.text()` is not matched); the Go
+rule matches `fmt.Sprintf` passed INLINE to a pgx `Query/QueryRow/Exec(ctx,...)`
+only (a pre-built string is a documented FN, not a false "clean"). No existing
+rule or card logic was changed.
+Checker/test added: `rules/semgrep/tests/check_probes.py` (deterministic TP/CLEAN
+matrix over `sql_text_sqlalchemy.py`, `sql_text_not_sqlalchemy.py`, `go_pgx.go`;
+`python3 rules/semgrep/tests/check_probes.py` → PASS); `tests/cards/
+gather_partial_failure.py` + `test_gather_partial_failure.py`; `tests/cards/
+pg_non_atomic_claim.py` + `test_pg_non_atomic_claim.py` (PostgreSQL; 4 tests).
+Decisions on the two earlier promotions (both reverted to card status on main):
+- `secret-in-config-or-log`: NOT promoted. Establishing "observed" needs proof
+  the file was tracked and not a fixture/example/deterministic-fake key, and the
+  only candidate is a private key I was instructed not to read/verify. Insufficient
+  in-folder evidence → stays `draft`.
+- `python-swallowed-exception`: NOT promoted. The real occurrence is already the
+  henry real-backend record below (the checker rule `python.swallowed-exception-pass`
+  is production-tested there); adding a new "first occurrence" entry would
+  contradict it. Card stays `draft`; no new claim invented.
+Status: draft. No card or rule was promoted in this pass.
+
 ## 2026-07-10 - codex-re-review-round-2
 
 Context: external Codex re-review of commits f2e346e/afa85c5 plus fresh

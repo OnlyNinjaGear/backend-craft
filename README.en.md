@@ -40,6 +40,10 @@ mkdir -p /path/to/your-project/.claude/skills
 cp -R .claude/skills/backend-craft /path/to/your-project/.claude/skills/
 ```
 
+The Semgrep pack (`rules/`) and the hook (`hooks/`) live outside the skill
+directory and are copied separately — you only need them if you want the
+mechanical checks and post-edit hints. The skill itself works without them.
+
 Then ask Claude Code to use `backend-craft` when building, reviewing, hardening,
 or choosing a backend stack.
 
@@ -69,8 +73,8 @@ See [hooks/README.md](hooks/README.md).
 
 v0.1 contains:
 
-- 39 failure cards, including 15 `production-tested` cards
-- 13 Semgrep rules: 2 `production-tested`, 11 `fixture-tested`, 0 `draft`
+- 41 failure cards, including 15 `production-tested` cards
+- 16 Semgrep rules: 2 `production-tested`, 11 `fixture-tested`, 3 `draft`
 - 3 runnable fixture projects with 16 planted flaws
 - 3 rounds of forward tests
 - real-backend validation on a mixed NestJS/Go/Python monorepo
@@ -84,8 +88,7 @@ Status details live in [docs/CHECKERS.md](docs/CHECKERS.md) and
 Repository sanity checks:
 
 ```bash
-python3 -m pip install pyyaml
-python3 scripts/validate_repo.py
+uv run --with pyyaml python scripts/validate_repo.py
 ```
 
 Fixture suites:

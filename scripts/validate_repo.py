@@ -125,12 +125,80 @@ def validate_markdown_links() -> None:
                 fail(f"{path.relative_to(ROOT)} links to missing path: {target}")
 
 
+def _rule_counts() -> tuple[int, dict[str, int]]:
+    rules = (yaml.safe_load(read(RULES)) or {}).get("rules") or []
+    by_status: dict[str, int] = {}
+    for rule in rules:
+        status = (rule.get("metadata") or {}).get("status")
+        by_status[status] = by_status.get(status, 0) + 1
+    return len(rules), by_status
+
+
+def _card_count() -> int:
+    ids = re.findall(r"^## ([a-z0-9-]+)$", read(CARDS), re.MULTILINE)
+    # 'card-id' is the placeholder header inside the "Card template" section.
+    return len([cid for cid in ids if cid != "card-id"])
+
+
+def validate_doc_counts() -> None:
+    """Fail if any human-facing doc disagrees with the real rule/card counts.
+
+    Truth is computed from the Semgrep pack and FAILURE_CARDS.md. README.md,
+    README.en.md and docs/STATUS.md must all quote the same numbers, so a rule
+    or card added without a doc update is a build failure, not a silent drift.
+    """
+    n_rules, by_status = _rule_counts()
+    n_cards = _card_count()
+    n_draft = by_status.get("draft", 0)
+
+    readme = ROOT / "README.md"
+    readme_en = ROOT / "README.en.md"
+    status = ROOT / "docs" / "STATUS.md"
+
+    # (path, human label, regex capturing the claimed number, truth)
+    checks: list[tuple[pathlib.Path, str, str, int]] = [
+        (readme, "README badge rule count", r"semgrep-(\d+)%20rules", n_rules),
+        (readme, "README 'Semgrep rules' row", r"\|\s*Semgrep rules\s*\|\s*(\d+)\s*\|", n_rules),
+        (readme, "README 'Failure cards' row", r"\|\s*Failure cards\s*\|\s*(\d+)\s*\|", n_cards),
+        (readme, "README 'draft' rules row", r"\|\s*Rules со статусом `draft`\s*\|\s*(\d+)\s*\|", n_draft),
+        (readme_en, "README.en cards", r"(\d+)\s+failure cards", n_cards),
+        (readme_en, "README.en rules", r"(\d+)\s+Semgrep rules", n_rules),
+        (status, "STATUS cards", r"(\d+)\s+failure cards", n_cards),
+        (status, "STATUS rules", r"(\d+)\s+Semgrep rules", n_rules),
+    ]
+    for path, label, pattern, expected in checks:
+        match = re.search(pattern, read(path))
+        if not match:
+            fail(f"{path.relative_to(ROOT)}: cannot find {label} (expected {expected})")
+        claimed = int(match.group(1))
+        if claimed != expected:
+            fail(f"{path.relative_to(ROOT)}: {label} says {claimed}, real value is {expected}")
+
+
+def validate_hook_wiring_json() -> None:
+    """The hooks/README.md wiring block is copy-pasted into a real
+    settings.json, so every ```json fence in it must parse."""
+    import json
+
+    hook_readme = ROOT / "hooks" / "README.md"
+    blocks = re.findall(r"```json\n(.*?)\n```", read(hook_readme), re.DOTALL)
+    if not blocks:
+        fail("hooks/README.md has no ```json wiring block to validate")
+    for i, block in enumerate(blocks):
+        try:
+            json.loads(block)
+        except Exception as exc:  # noqa: BLE001 - validation script
+            fail(f"hooks/README.md json block #{i} is invalid JSON: {exc}")
+
+
 def main() -> None:
     validate_skill()
     validate_rules()
     validate_fixtures()
     validate_forward_results()
     validate_markdown_links()
+    validate_doc_counts()
+    validate_hook_wiring_json()
     print("validate_repo: ok")
 
 

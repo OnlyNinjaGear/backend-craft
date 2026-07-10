@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/OnlyNinjaGear/backend-craft/actions/workflows/ci.yml/badge.svg)](https://github.com/OnlyNinjaGear/backend-craft/actions/workflows/ci.yml)
 ![Status](https://img.shields.io/badge/status-v0.1%20frozen-blue)
-![Rules](https://img.shields.io/badge/semgrep-13%20rules-2ea44f)
+![Rules](https://img.shields.io/badge/semgrep-16%20rules-2ea44f)
 ![Fixtures](https://img.shields.io/badge/fixtures-16%20planted%20flaws-orange)
 
 [English README](README.en.md)
@@ -44,12 +44,12 @@ API-контракт. Права. Tenant boundary. Миграция. Повто�
 
 | Артефакт | Текущее состояние |
 |---|---:|
-| Failure cards | 39 |
-| Карточки, проверенные на реальных или слепых кейсах | 15 |
-| Semgrep rules | 13 |
+| Failure cards | 41 |
+| Карточки со статусом `production-tested` | 15 |
+| Semgrep rules | 16 |
 | Rules со статусом `production-tested` | 2 |
 | Rules со статусом `fixture-tested` | 11 |
-| Rules со статусом `draft` | 0 |
+| Rules со статусом `draft` | 3 |
 | Fixtures | 3 проекта, 16 посаженных ошибок |
 | Forward tests | 3 раунда |
 | Hook acceptance | 14/14 assertions |
@@ -79,6 +79,10 @@ API-контракт. Права. Tenant boundary. Миграция. Повто�
 mkdir -p /path/to/your-project/.claude/skills
 cp -R .claude/skills/backend-craft /path/to/your-project/.claude/skills/
 ```
+
+Semgrep-пак (`rules/`) и hook (`hooks/`) лежат вне папки скилла и копируются
+отдельно — они нужны, только если вы хотите механические проверки и подсказки
+после правок. Сам скилл работает и без них.
 
 Дальше можно просить агента работать с ним явно:
 

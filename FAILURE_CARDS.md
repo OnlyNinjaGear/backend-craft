@@ -496,3 +496,36 @@ Safe pattern: inventory first, harden current boundaries, introduce new library/
 Verifier: staged plan lists current-stack checks and proves at least one risk reduction before any migration work.
 Escape hatch: current framework is unsupported, blocks required security fixes, or the user explicitly asks for a migration project.
 Sources: `stack-recipes.md`, `codebase-fit.md`, official docs for old and new frameworks.
+
+## python-gather-partial-failure-leak
+
+Status: draft
+Triggered by: running several side-effecting async operations concurrently (`asyncio.gather`, fan-out over a collection) where one may fail.
+Model failure: treats `asyncio.gather(*coros)` as if it were an all-or-nothing transaction. Two wrong assumptions get bundled together: (a) that when one awaitable raises, `gather` cancels the siblings, and (b) that a failed batch leaves no partial side effects. Both are false, and they are different problems that need different fixes.
+Blast radius: after the first error, sibling coroutines keep running and commit half of a logical operation — a charge without its record, a row written without its outbox event, an email sent for an order that never persisted.
+Detect: `asyncio.gather(...)` (without `return_exceptions=True`) over coroutines that each perform a write/external call, and the code path assumes "if it raised, nothing happened".
+Safe pattern: separate the four concerns instead of hoping one call covers them.
+  1. Ownership / cancellation: prefer `asyncio.TaskGroup` — structured concurrency cancels the remaining tasks on the first error and does not leak background work. If you must stay on `gather`, do it manually: create tasks, and on the first exception cancel the unfinished ones, then `await asyncio.gather(*tasks, return_exceptions=True)` to drain them, then re-raise.
+  2. Atomicity: neither `gather` nor `TaskGroup` gives it. Cancellation is not rollback — a side effect committed before the cancel point stays committed.
+  3. Side-effect safety: make each side effect idempotent, or add compensation/saga, a state machine, an outbox, or a single DB transaction boundary — or run the side effects sequentially after all inputs are validated, so a mid-batch failure cannot half-commit.
+  4. Read-only fan-out has none of this risk; only error aggregation and ordering matter there.
+Verifier: `tests/cards/gather_partial_failure.py` + `tests/cards/test_gather_partial_failure.py` prove BOTH facts without a timing race: `gather` lets a sibling commit its side effect AFTER the error already propagated (not cancelled), and `TaskGroup` cancels the sibling but the side effect it committed before cancellation is NOT rolled back. Run: `python3 tests/cards/gather_partial_failure.py` and `cd tests/cards && python3 -m pytest test_gather_partial_failure.py -q`.
+Escape hatch: fan-out with no side effects (pure reads/computation), where a partial failure cannot leave inconsistent state.
+Sources: Python asyncio docs — `asyncio.gather` and `asyncio.TaskGroup` (https://docs.python.org/3/library/asyncio-task.html).
+
+## pg-non-atomic-poll-queue-claim
+
+Status: draft
+Triggered by: using a Postgres table as a job/outbox queue and writing the "grab the next job" step by hand.
+Model failure: claims a job with a `SELECT ... WHERE status='pending'` in one statement and a separate `UPDATE ... SET status='running'` in another, with no row lock and no status guard. Two workers polling at the same time both read the same row before either writes it back, so the job is claimed — and processed — twice. The real defect is a non-atomic claim, not "missing SKIP LOCKED".
+Blast radius: duplicate processing of each job under concurrency — double charges, double emails, double side effects — silently, only when more than one worker runs.
+Detect: a poll loop that reads candidate rows and marks them claimed in a separate statement/transaction, with no `FOR UPDATE`, no `SKIP LOCKED`, and no conditional guard (`status='pending'`) inside the UPDATE/DELETE itself.
+Safe pattern: make the claim atomic. Any of these is correct:
+  - `SELECT ... FOR UPDATE SKIP LOCKED` then update — the standard high-throughput option; locked rows are skipped so workers do not block each other.
+  - a single conditional `UPDATE ... SET status='running' WHERE id=$1 AND status='pending' RETURNING ...` (or `DELETE ... RETURNING` for delete-on-claim) — the claim succeeds only if the row was still pending; check that a row came back.
+  - plain `SELECT ... FOR UPDATE` — correct, but workers contend on the lock; fine when the claim transaction is short.
+  SKIP LOCKED is one good option, not the only correct one.
+  None of these give exactly-once: after a claim a worker can crash mid-processing and a reaper/visibility-timeout will redeliver, so the consumer must still be idempotent / dedupe / compensate.
+Verifier: `tests/cards/pg_non_atomic_claim.py` + `tests/cards/test_pg_non_atomic_claim.py` (needs a reachable PostgreSQL) prove four facts: non-atomic SELECT-then-UPDATE hands the same row to two workers; `FOR UPDATE SKIP LOCKED` gives each row to exactly one worker without blocking; conditional `UPDATE ... RETURNING` claims exactly once under concurrent writers; and an atomically-claimed job is still delivered twice after a crash + requeue. Run: `PGHOST=... PGDATABASE=... uv run --with psycopg2-binary python tests/cards/pg_non_atomic_claim.py` and the same env with `--with pytest python -m pytest tests/cards/test_pg_non_atomic_claim.py -q`.
+Escape hatch: a single-worker consumer, or a real broker (SQS/RabbitMQ/Redis Streams) that already provides the claim — the card is about hand-rolled SQL-table queues.
+Sources: PostgreSQL SELECT reference — `FOR UPDATE ... SKIP LOCKED` (https://www.postgresql.org/docs/current/sql-select.html); PostgreSQL explicit locking (https://www.postgresql.org/docs/current/explicit-locking.html).
