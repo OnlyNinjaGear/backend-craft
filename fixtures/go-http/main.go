@@ -58,6 +58,12 @@ func main() {
 	}
 	srv := newServer(st, NewInventoryClient())
 
+	// Process-lifetime ops/debug listeners (see ops.go). The `go` statements
+	// here are the goroutine card's escape hatch: registered in server
+	// lifecycle, alive for the whole process.
+	go startOps()
+	go startDebug()
+
 	httpServer := &http.Server{
 		Addr:              ":8080",
 		Handler:           srv.handler(),

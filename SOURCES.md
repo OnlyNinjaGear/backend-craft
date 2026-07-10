@@ -75,6 +75,7 @@ or war stories, never as the rule authority.
 | FastAPI SQL databases: https://fastapi.tiangolo.com/tutorial/sql-databases/ | FastAPI persistence integration shape | `stack-recipes.md`, Python API recipe |
 | FastAPI dependencies: https://fastapi.tiangolo.com/reference/dependencies/ | dependency injection for auth/session/tenant context | FastAPI recipe |
 | FastAPI OAuth2 tutorial: https://fastapi.tiangolo.com/tutorial/security/simple-oauth2/ | baseline auth flow examples | security adapter |
+| FastAPI bigger applications: https://fastapi.tiangolo.com/tutorial/bigger-applications/ | router-level dependencies apply only to that router (verified 2026-07-10) | `auth-middleware-scope-miss` card |
 | Django deployment checklist: https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/ | deployment/security release checks | Django/DRF recipe |
 | DRF permissions: https://www.django-rest-framework.org/api-guide/permissions/ | endpoint/object permission model | auth cards, Django recipe |
 | DRF serializers: https://www.django-rest-framework.org/api-guide/serializers/ | boundary DTOs and field control | BOPLA/mass-assignment cards |
@@ -128,6 +129,8 @@ or war stories, never as the rule authority.
 | Fastify validation and serialization: https://fastify.io/docs/latest/Reference/Validation-and-Serialization/ | JSON Schema request/response validation | TS stack recipe |
 | Fastify TypeScript: https://fastify.io/docs/latest/Reference/TypeScript/ | TS integration patterns | TS stack recipe |
 | Fastify type providers: https://fastify.io/docs/latest/Reference/Type-Providers/ | schema-to-type integration | TS boundary recipe |
+| Fastify hooks: https://fastify.dev/docs/latest/Reference/Hooks/ | hooks are encapsulated per plugin context; preParsing/preValidation recommended for auth (verified 2026-07-10) | `auth-middleware-scope-miss` card |
+| Fastify encapsulation: https://fastify.dev/docs/latest/Reference/Encapsulation/ | sibling context isolation; `fastify-plugin` breaks encapsulation explicitly (verified 2026-07-10) | `auth-middleware-scope-miss` card |
 | NestJS docs: https://docs.nestjs.com/ | modular backend framework model | NestJS recipe |
 | NestJS pipes: https://docs.nestjs.com/pipes | validation/transformation pipeline | boundary validation cards |
 | NestJS validation: https://docs.nestjs.com/techniques/validation | DTO validation approach | NestJS recipe |

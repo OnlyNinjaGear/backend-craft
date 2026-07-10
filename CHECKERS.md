@@ -33,9 +33,34 @@ caught, 0 false positives on clean contrast code.
 
 Scope note: the two Go server-timeout rules
 (`go.listen-and-serve-no-timeouts`, `go.server-missing-read-timeouts`) were
-added after this record and remain `draft` — probe-validated (TP + clean
-variants) but with no fixture plant; the go-http fixture's correctly configured
-server serves as their clean-pass regression only.
+added after this record as `draft` (probe-validated, no fixture plant). See
+the promotion record below.
+
+## Go server-timeout rules promotion record (2026-07-10)
+
+`fixtures/go-http/ops.go` now plants both signatures under the
+`go-http-server-no-timeouts` card: a bare `&http.Server{Addr, Handler}` ops
+listener and a package-level `http.ListenAndServe(":6060", nil)` debug
+listener, both bound to all interfaces so the localhost escape hatch does not
+apply. Verification run (same command as above, fixtures + rebuilt probe
+corpus):
+
+- fixture plants: 2/2 caught (`ops.go` Server literal and ListenAndServe)
+- probe TPs: 4/4 — `ListenAndServe`, `ListenAndServeTLS`, bare `Server`
+  literal, `Server` with only `WriteTimeout`
+- probe CLEANs: 0 FP — `Server` with `ReadHeaderTimeout`, `Server` with
+  `ReadTimeout`, method-call `srv.ListenAndServe()` on a configured server,
+  `httptest.NewServer`
+- the fixture's correctly configured main server stays unflagged (clean-pass
+  regression); fixture `go vet` + happy-path tests stay green
+- the new `go startOps()` / `go startDebug()` calls in the fixture `main()`
+  double as a scoping regression for `go.naked-goroutine-in-handler` and did
+  not fire
+
+Both rules promoted `draft` → `fixture-tested`. Not `production-tested`: the
+henry run had zero hits for them (FN-probes confirmed henry has no HTTP
+listeners in Go — Temporal workers only), so no real-backend true positive
+exists yet.
 
 Narrowings made during verification:
 

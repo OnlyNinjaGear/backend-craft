@@ -70,9 +70,12 @@ Results in `forward-test-results/30x-*.md`.
 
 `rules/semgrep/backend-craft.yml` is fixture-tested: 13/13 detectable plants
 caught, 0 false positives on clean contrast code (run command and verification
-record in `CHECKERS.md`). The two later-added Go server-timeout rules are
-`draft` (probe-validated, no fixture plant). Real-backend validation (henry
-monorepo, 2026-07-10): `sync-fs-in-code` and `swallowed-exception-pass`
+record in `CHECKERS.md`). The two later-added Go server-timeout rules were
+promoted `draft` → `fixture-tested` on 2026-07-10 via a go-http fixture plant
+(`ops.go`: bare `&http.Server` ops listener + package-level `ListenAndServe`
+debug listener; 2/2 caught, probe corpus 4 TP / 0 FP; promotion record in
+`CHECKERS.md`). Real-backend validation (henry monorepo, 2026-07-10):
+`sync-fs-in-code` and `swallowed-exception-pass`
 promoted to `production-tested` on real true positives; remaining rules ran
 clean with FN-probes confirming the repo has no target constructs. The TS floating-promise Semgrep rule was retired —
 Semgrep matches subexpressions and cannot anchor JS statements; the card's
@@ -80,13 +83,16 @@ verifier is type-aware `@typescript-eslint/no-floating-promises`.
 "Public route returning ORM/entity directly" was skipped: no stable mechanical
 signature.
 
-Remaining: validate the pack on at least one real backend, then promote rule
-statuses from `fixture-tested` to `production-tested`.
+Remaining: promote the rest of the pack to `production-tested`
+opportunistically — henry had no target constructs for those rules, so the
+promotion needs a real backend that does. Do not hunt for one; validate when
+one shows up.
 
 ### 3. Fixture projects — DONE (2026-07-10)
 
-`fixtures/{python-fastapi,go-http,ts-fastify}` exist: 15 planted flaws total,
-each mapped to a card and marked `PLANTED: <card-id>`, happy-path suites green,
+`fixtures/{python-fastapi,go-http,ts-fastify}` exist: 16 planted flaws total
+(go-http gained a server-timeout plant in `ops.go`, 2026-07-10), each mapped
+to a card and marked `PLANTED: <card-id>`, happy-path suites green,
 per-fixture READMEs list expected failures. `fixtures/README.md` has the
 acceptance procedure. Treat the current tree as the pristine baseline; snapshot
 before any forward-test run.
@@ -115,12 +121,17 @@ checker. Do not paste broad documentation into the skill.
 
 High-value missing source areas:
 
-- Go `net/http` server timeout docs
 - Flyway or Liquibase docs if Java/JVM migration coverage becomes necessary
 - Kafka consumer semantics if event-stream services enter scope
 - Sidekiq-like patterns if Ruby/Rails services enter scope
-- framework-specific auth docs for the fixture stacks after fixtures exist
 - official docs for any new library added to `library-decisions.md`
+
+Done 2026-07-10: framework-specific auth docs for the fixture stacks —
+FastAPI was already covered; Fastify Hooks + Encapsulation and FastAPI
+Bigger Applications digested into the `auth-middleware-scope-miss` card
+(Go stdlib has no auth framework docs to digest; the card's Go line covers
+mux-wrapping scope). Only sources that produced a concrete card/verifier
+were admitted.
 
 ## Writing rules
 

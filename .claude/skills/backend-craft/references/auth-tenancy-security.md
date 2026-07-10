@@ -34,6 +34,15 @@ Safe patterns:
 - call policy with principal + object before mutation
 - enforce server-derived tenant id, never client-provided tenant id
 
+### Auth guards attach at the shared ancestor scope
+
+Framework auth is scoped, not global: Fastify hooks are encapsulated to their
+plugin context, FastAPI router dependencies cover only that router, a wrapped
+Go sub-mux covers only what it wraps. A new route module added outside the
+guarded scope ships unauthenticated and nothing errors. Attach the guard at
+the shared ancestor, keep public routes in an explicit allowlisted scope, and
+sweep the route table with an unauthenticated 401/403 test.
+
 ### Request bodies cannot set server-owned fields
 
 Never mass-assign request bodies into persistence models. Allowlist writeable
@@ -55,6 +64,7 @@ timeouts.
 ## Common failure cards
 
 - `authz-handler-only`
+- `auth-middleware-scope-miss`
 - `tenant-filter-forgotten`
 - `pii-logged`
 - `ssrf-url-fetch`
@@ -65,6 +75,7 @@ timeouts.
 ## Verifiers
 
 - forbidden-principal tests
+- unauthenticated route-table sweep (all non-allowlisted routes 401/403)
 - cross-tenant seed tests
 - forbidden field update tests
 - secret scan

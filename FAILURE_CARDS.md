@@ -113,6 +113,18 @@ Verifier: tests call all public use cases with forbidden principal.
 Escape hatch: private pure data access function not reachable from request/job boundary.
 Sources: OWASP Authorization Cheat Sheet, ASVS access control.
 
+## auth-middleware-scope-miss
+
+Status: draft
+Triggered by: adding auth via framework middleware/hooks/router dependencies (Fastify `addHook`, FastAPI `APIRouter(dependencies=...)`, Go mux middleware wrapping), then adding a new route module.
+Model failure: registers the auth guard on a sub-scope and assumes it is global. New or sibling route modules land outside the guarded scope and ship unauthenticated: Fastify hooks are encapsulated to their plugin context and its children (siblings unaffected); FastAPI router-level dependencies "only affect that APIRouter"; Go stdlib auth wrapping covers only the handlers or sub-mux it explicitly wraps.
+Blast radius: whole route modules silently public — every request succeeds, nothing errors, data exposure or mutation until someone notices.
+Detect: auth hook/dependency registered inside one registered plugin/router while routes exist in sibling scopes; a new route file whose registration path does not pass through the guarded scope; a route registered directly on the root mux/app next to an auth-wrapped sub-router.
+Safe pattern: attach the auth guard at the shared ancestor context (root or an explicit "authenticated" scope) and put public routes in a separate scope; in Fastify use preParsing/preValidation at the ancestor (the docs' recommended auth hooks) and export hooks upward only via `fastify-plugin`, explicitly; in FastAPI attach dependencies at `include_router` (or app level) for every protected router.
+Verifier: route-table sweep test — enumerate all registered routes (Fastify `printRoutes()`, FastAPI `app.routes`, the Go mux table) and assert every route not in the public allowlist returns 401/403 without credentials.
+Escape hatch: intentionally public routes (health, signed webhooks, docs) named in a public-route allowlist that the sweep test reads.
+Sources: Fastify Hooks + Encapsulation references (hooks encapsulated per plugin context; sibling isolation; fastify-plugin breaks encapsulation explicitly), FastAPI Bigger Applications tutorial (router-level dependencies scoped to that router only), OWASP Authorization Cheat Sheet (deny by default). Verified against fastify.dev and fastapi.tiangolo.com, 2026-07-10.
+
 ## tenant-filter-forgotten
 
 Status: production-tested (forward-test 003, 2026-07-10)

@@ -113,7 +113,7 @@ Created:
 - handoff instructions: [`CLAUDE_HANDOFF.md`](CLAUDE_HANDOFF.md)
 - checker notes: [`CHECKERS.md`](CHECKERS.md)
 - Semgrep rules (fixture-tested): [`rules/semgrep/backend-craft.yml`](rules/semgrep/backend-craft.yml)
-- fixture projects (3 stacks, 15 planted flaws): [`fixtures/`](fixtures/)
+- fixture projects (3 stacks, 16 planted flaws): [`fixtures/`](fixtures/)
 - forward-test results (round 1, 2026-07-10, mean 3.86/4): [`forward-test-results/`](forward-test-results/)
 - evidence log: [`CHANGELOG.md`](CHANGELOG.md)
 
@@ -132,8 +132,8 @@ Status (2026-07-10):
 - Semgrep pack executed and narrowed against a probe corpus + fixtures:
   13/13 detectable plants caught, 0 false positives; the TS floating-promise
   rule was retired in favor of type-aware eslint; the two later-added Go
-  server-timeout rules are probe-validated `draft` (no fixture plant); see
-  CHECKERS.md
+  server-timeout rules promoted `draft` → `fixture-tested` on 2026-07-10 via a
+  go-http fixture plant (`ops.go`, 2/2 caught, 0 FP); see CHECKERS.md
 - pack + hook validated on a real monorepo (henry: NestJS admin API, Go
   Temporal workers, Python workers): 49 findings sample-verified, 0
   wrong-match FPs; two rules with real TPs promoted to production-tested;
@@ -150,14 +150,16 @@ Also done:
 
 Not done yet:
 
-- Semgrep pack not yet validated on a real backend (`production-tested` for
-  rules requires one)
+- most rules are `fixture-tested`, not `production-tested`: the henry run
+  produced real TPs only for `sync-fs-in-code` and `swallowed-exception-pass`;
+  the rest ran clean there (FN-probes confirmed true negatives), so they wait
+  for a real backend that actually contains their target constructs
 
 ## Next build order
 
-1. Validate the Semgrep pack + hook on at least one real backend; promote rule
-   statuses.
-2. Continue source digestion per SOURCES.md high-value gaps.
+1. Continue source digestion per SOURCES.md high-value gaps.
+2. Promote remaining rules to `production-tested` opportunistically — when a
+   real backend with their target constructs shows up, not by hunting for one.
 3. Do not split into language-specific skills unless future forward tests
    prove the router insufficient.
 

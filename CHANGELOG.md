@@ -226,3 +226,52 @@ Rule/reference changed: rules narrowed/added as recorded in `CHECKERS.md`
 Checker/test added: fixtures serve as the permanent regression corpus; rerun
 command documented in `CHECKERS.md`.
 Status: observed (checker-level evidence; cards unchanged pending forward tests)
+
+## 2026-07-10 - go-server-timeout-rules-promoted-to-fixture-tested
+
+Context: the two Go server-timeout rules (`go.listen-and-serve-no-timeouts`,
+`go.server-missing-read-timeouts`) were probe-validated `draft` with no
+fixture plant; closing the last non-fixture-tested gap in the shipped pack.
+Artifact: `fixtures/go-http/ops.go` (new), `fixtures/go-http/main.go`,
+`rules/semgrep/backend-craft.yml`, `CHECKERS.md`, fixture READMEs,
+regenerated `fixtures/pristine-baseline-20260710.tar.gz`.
+Expected: both rules catch a realistic plant and stay silent on the fixture's
+correctly configured server.
+Why the agent likely failed (the card's failure mode): ops/debug listeners are
+the classic spot — a bare `&http.Server{Addr, Handler}` ops endpoint and the
+canonical-looking `http.ListenAndServe(":6060", nil)` debug listener, both on
+all interfaces (the docs' own example uses `localhost:6060`; dropping the host
+silently widens exposure with zero timeouts).
+Failure card: `go-http-server-no-timeouts` (card itself stays `draft` on the
+card ladder — planted, not yet observed in a real project or forward test).
+Rule/reference changed: both rules `draft` -> `fixture-tested`; promotion
+record in `CHECKERS.md`; go-http plant count 5 -> 6 (16 total across
+fixtures); expected Semgrep baseline 9 -> 11 hits.
+Checker/test added: fixture plants are the permanent regression; probe corpus
+rerun 4/4 TP, 0 FP on clean variants (ReadHeaderTimeout-only,
+ReadTimeout-only, method-call ListenAndServe, httptest); `go vet` + happy-path
+tests green; the new `go startOps()`/`go startDebug()` in `main()` double as
+a no-fire scoping regression for `go.naked-goroutine-in-handler`.
+Status: observed (checker-level evidence)
+
+## 2026-07-10 - auth-middleware-scope-miss-card-added
+
+Context: handoff item "framework-specific auth docs for the fixture stacks";
+admission bar = concrete card/verifier only, no generic advice.
+Artifact: `FAILURE_CARDS.md` (new card), `SOURCES.md` (3 rows),
+`references/auth-tenancy-security.md` (non-negotiable + verifier line).
+Expected: auth guards cover every non-public route.
+Why the agent likely fails: registers the auth guard on a sub-scope assuming
+it is global — Fastify hooks are encapsulated per plugin context (siblings
+unaffected), FastAPI router-level dependencies "only affect that APIRouter",
+a wrapped Go sub-mux covers only what it wraps; a route module added outside
+the guarded scope ships unauthenticated and nothing errors.
+Failure card: `auth-middleware-scope-miss` (draft — source-backed, not yet
+observed in a project or forward test).
+Rule/reference changed: card added; auth reference gained "Auth guards attach
+at the shared ancestor scope" and the route-table sweep verifier.
+Checker/test added: none mechanical (scope topology is semantic); verifier is
+the unauthenticated route-table sweep (all non-allowlisted routes 401/403).
+Sources verified against fastify.dev and fastapi.tiangolo.com on 2026-07-10.
+Status: draft (card-level; no fixture plant — fixtures use fake header auth
+by design, zero-dep philosophy)

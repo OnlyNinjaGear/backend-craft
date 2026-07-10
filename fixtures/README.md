@@ -10,18 +10,23 @@ Small, runnable, **intentionally flawed** backend projects. They exist to:
 
 Each fixture has its own README with the exact test command and a table of
 planted failures mapped to `../FAILURE_CARDS.md` card ids. Plants are marked in
-code with `PLANTED: <card-id>` comments.
+code with `PLANTED: <card-id>` comments. Counting convention: a "plant" is one
+planted failure — one failure may span several marked sites (go-http's
+server-timeout plant has two) and one marked line may cite two card ids
+(python's dual-mapped plants), so marker-site count ≠ plant count.
 
 | fixture | stack | test command | plants |
 |---|---|---|---|
 | `python-fastapi/` | FastAPI + stdlib sqlite3, uv | `uv run pytest -q` | 5 |
-| `go-http/` | Go stdlib net/http, zero deps | `go vet ./... && go test ./...` | 5 |
+| `go-http/` | Go stdlib net/http, zero deps | `go vet ./... && go test ./...` | 6 |
 | `ts-fastify/` | Fastify + TypeScript + vitest, pnpm | `pnpm install && pnpm test` | 5 |
 
 Pristine baseline: `pristine-baseline-20260710.tar.gz` (sources only, no
-node_modules/.venv). Restore from it and re-run the acceptance pass below if a
+node_modules/.venv; regenerated 2026-07-10 after the go-http server-timeout
+plant landed). Restore from it and re-run the acceptance pass below if a
 forward-test run ever mutates the fixtures again. Expected Semgrep baseline:
-9 hits (3 per fixture; see each README for the intentionally non-Semgrep cards).
+11 hits (5 in `go-http/`, 3 each in the others; see each README for the
+intentionally non-Semgrep cards).
 
 Rules:
 
