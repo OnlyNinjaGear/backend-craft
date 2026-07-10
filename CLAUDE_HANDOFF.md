@@ -52,11 +52,16 @@ rewrite dependency guidance from memory.
 `forward-test-results/` (mean 3.86/4). Skill/reference/card fixes from the
 misses are applied; 13 cards promoted to `production-tested`.
 
-Round 2 remains: rerun with isolated (copied) fixtures per the new isolation
-rules in `FORWARD_TESTS.md` to confirm the routing fixes close the 004
-(transaction-around-payment) and 008 (unbounded export) misses. Never let a
-tested agent edit the shared fixtures — round 1 contaminated them and they had
-to be restored from builder transcripts (see CHANGELOG.md).
+Round 2 — DONE (2026-07-10): rerun on disposable copies with grading markers
+stripped; mean 3.93/4, 13/14 round-1 misses closed. Both round-1 3-scores
+(104 transaction-around-payment, 108 unbounded export) fixed by the routing
+changes and re-proven. One new gap (test-writing without
+testing-verification.md) fixed via routing signals + proof-contract clause.
+Results in `forward-test-results/1xx-*.md`. Repo is now git — snapshot/restore
+is `git status` + `git checkout` instead of transcript reconstruction.
+
+Optional round 3: one regression test for 114-style tasks (a "write tests for
+X" prompt) to confirm the new testing-row signals fire.
 
 ### 2. Rule packs — DONE for the high-confidence set (2026-07-10)
 

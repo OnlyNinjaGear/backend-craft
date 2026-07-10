@@ -29,6 +29,37 @@ Status: observed | production-tested | retired
 
 ## Entries
 
+## 2026-07-10 - forward-test-round-2
+
+Context: 14 tests rerun on disposable fixture copies (grading markers and
+READMEs stripped from copies — also closes a round-1 validity hole where
+tested agents could see `PLANTED:` comments). Judges verified explicit
+ROUND-2 FOCUS items for every round-1 miss. Originals verified untouched via
+`git status`. Results in `forward-test-results/1xx-*.md`.
+Artifact: `.claude/skills/backend-craft/`.
+Expected: both round-1 3-scores close; no regressions.
+Outcome: mean 3.93/4 (round 1: 3.86). 104 payment-idempotency 3->4 (agent
+loaded persistence-migrations.md via the new payment/money routing signals,
+discussed transaction boundary + outbox). 108 node-csv-export 3->4 (agent
+loaded reliability-async.md via the new export signals, streamed with query-
+level cap and concrete verifier). 13/14 round-1 misses closed.
+Why the agent likely failed (the one regression): 114 rewrite-discipline 4->3
+— wrote a 6-test regression file without loading testing-verification.md; the
+Retrofit-mode sentence was not self-enforcing, and an SQL-injection fix loaded
+only the security reference, not persistence-migrations.md.
+Failure card: none new.
+Rule/reference changed: SKILL.md testing row signals += "adding or writing any
+new test file, regression tests for a fix"; SQL row += "fixing SQL injection /
+parameterizing queries"; proof contract now requires testing-verification.md
+in files-read when tests change; Continue mode mirrors the Retrofit testing
+rule. From judge suggestions: api-contracts.md idempotency in-progress-key
+lease/expiry rule + crash-retry verifier, export row cap enforced in the query
+itself, language-adapters.md goroutine panic-recovery rule with sanctioned
+stdlib fallback.
+Checker/test added: none new (semantic).
+Status: observed; `db-transaction-around-network-call` (104) and
+`event-loop-blocking` (108) promoted to production-tested.
+
 ## 2026-07-10 - forward-test-round-1
 
 Context: 14 blind forward tests (FORWARD_TESTS.md) run by fresh subagents

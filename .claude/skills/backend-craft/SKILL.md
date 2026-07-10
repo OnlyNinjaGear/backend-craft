@@ -88,7 +88,9 @@ Read all risk references that match changed or inspected surfaces.
 ### Continue mode
 
 Use for ordinary backend feature or bug-fix work. Run the Impact Read, load only
-the needed references, implement, then verify.
+the needed references, implement, then verify. When the work prescribes or
+writes new tests or CI gates, load `references/testing-verification.md` before
+writing the verifier plan (same rule as Retrofit mode).
 
 ## Reference routing
 
@@ -100,10 +102,10 @@ a concurrency change that also adds a response field triggers both
 |---|---|
 | endpoint, schema, status code, DTO, response field added/removed, webhook, public response | `references/api-contracts.md` |
 | auth, role, permission, tenant, PII, secret, SSRF, user-facing email/SMS/push | `references/auth-tenancy-security.md` |
-| SQL, ORM, Mongo, migration, transaction, index, query performance, payment, money movement, DB write paired with an external call | `references/persistence-migrations.md` |
+| SQL, ORM, Mongo, migration, transaction, index, query performance, payment, money movement, DB write paired with an external call, fixing SQL injection / parameterizing queries | `references/persistence-migrations.md` |
 | retry, timeout, queue, worker, cron, webhook, cancellation, external API, export, CSV/bulk download, streaming response, fire-and-forget or floating promise, event loop | `references/reliability-async.md` |
 | logs, metrics, traces, alerts, runbooks, correlation ids | `references/observability-ops.md` |
-| tests, CI, contract testing, DB integration tests | `references/testing-verification.md` |
+| tests, CI, contract testing, DB integration tests, adding or writing any new test file, regression tests for a fix | `references/testing-verification.md` |
 | refactor, architecture, naming, module boundaries | `references/codebase-fit.md` |
 | new service, stack choice, scaffold, project setup | `references/stack-recipes.md` |
 | framework choice, dependency choice, library replacement, custom code vs library | `references/library-decisions.md` |
@@ -124,6 +126,8 @@ of:
 Running a command whose output you did not inspect does not count. Before
 reporting, re-verify the "files changed" list against the working tree —
 signatures, arity, and new-vs-modified status must match reality, not memory.
+If the change adds or modifies tests, `references/testing-verification.md`
+must appear in the files you read.
 
 ## Severity guide
 

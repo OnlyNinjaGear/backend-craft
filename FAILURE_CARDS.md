@@ -175,7 +175,7 @@ Sources: CWE-89, OWASP ASVS, PostgreSQL docs.
 
 ## db-transaction-around-network-call
 
-Status: draft
+Status: production-tested (forward-test 104, 2026-07-10)
 Triggered by: endpoint creates DB row and calls payment/email/external API.
 Model failure: opens DB transaction, then performs network call inside it.
 Blast radius: long-held locks, deadlocks, duplicate side effects on retry, poor throughput.
@@ -331,7 +331,7 @@ Sources: Go context docs, Python asyncio docs, Node AbortController docs.
 
 ## event-loop-blocking
 
-Status: draft
+Status: production-tested (forward-test 108, 2026-07-10)
 Triggered by: Node request path with crypto, compression, JSON, file IO, loops, sync DB/client calls.
 Model failure: uses sync or CPU-heavy work inside request handler.
 Blast radius: all clients stall because event loop is blocked.

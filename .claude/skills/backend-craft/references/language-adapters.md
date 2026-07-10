@@ -71,6 +71,12 @@ Bad signatures:
 Use `errgroup.WithContext` or a bounded worker pool for request/job fan-out.
 Errors from goroutines must be observable.
 
+Panics: request-scoped supervised goroutines must recover panics and convert
+them to errors — a bare WaitGroup goroutine panic kills the process
+(errgroup >= v0.9.0 re-panics on the waiting goroutine, where net/http handler
+recovery applies). In zero-dependency modules, WaitGroup + explicit error and
+panic capture is the sanctioned stdlib fallback to errgroup.
+
 ### Errors
 
 Do not ignore errors. Wrap errors when adding useful context and preserve

@@ -54,8 +54,10 @@ Escape hatch: tiny static enumerations with documented bounded cardinality.
 Any full-collection export (CSV/report/bulk download) must bound its work: a
 hard row cap, cursor pagination, a streamed response, or an async export job
 with a download link. "The dataset is small today" is not an accepted waiver —
-the endpoint's cost grows with the table. Verifier: row-cap test or
-streamed-response assertion (see `reliability-async.md` verifiers).
+the endpoint's cost grows with the table. The row cap must be enforced in the
+query itself (e.g. `LIMIT cap+1`), not after materializing all rows, so the DB
+read is bounded too. Verifier: row-cap test or streamed-response assertion
+(see `reliability-async.md` verifiers).
 
 ### Mutating retries require idempotency
 
@@ -67,8 +69,12 @@ Safe pattern:
 - persist key + request fingerprint + final response/result
 - replay same result for duplicate key
 - reject same key with different fingerprint
+- in-progress keys must be recoverable: a stored key with no response needs a
+  lease timestamp and takeover/expiry after N seconds, otherwise a crash
+  between key insert and response store bricks the key forever
 
-Verifier: duplicate request produces one side effect.
+Verifier: duplicate request produces one side effect; crashed first attempt ->
+retry after lease expiry succeeds.
 
 ### Error responses use one contract
 

@@ -119,13 +119,19 @@ Created:
 
 Status (2026-07-10):
 
-- 14/14 forward tests run blind with separate judges; 13 cards promoted to
-  `production-tested` with test ids in their Status lines
+- forward-test round 1: 14/14 blind tests, mean 3.86/4; routing fixes applied
+  from the misses
+- forward-test round 2 (isolated fixture copies, leak-stripped): mean 3.93/4,
+  13/14 round-1 misses closed — both round-1 3-scores (payment transaction
+  boundary, unbounded CSV export) fixed by the routing changes; one new
+  routing-discipline gap (testing-verification.md) fixed in SKILL.md
+- 15 cards `production-tested` with test ids in their Status lines
 - Semgrep pack executed and narrowed against a probe corpus + fixtures:
   13/13 detectable plants caught, 0 false positives; the TS floating-promise
   rule was retired in favor of type-aware eslint (see CHECKERS.md)
-- forward-test isolation rules added after tested agents mutated fixtures
-  in place (see CHANGELOG.md and FORWARD_TESTS.md)
+- repo is now a git repository; fixtures protected by baseline commit
+- forward-test isolation rules added after round-1 tested agents mutated
+  fixtures in place (see CHANGELOG.md and FORWARD_TESTS.md)
 
 Not done yet:
 
@@ -139,8 +145,8 @@ Not done yet:
    dedup, always exit 0 — see CLAUDE_HANDOFF.md task 4).
 2. Validate the Semgrep pack on at least one real backend; promote rule
    statuses.
-3. Forward-test round 2 with isolated (copied) fixtures to confirm the routing
-   fixes from round 1 close the 004/008 misses.
+3. Optional round 3: single regression test for 114 (write-tests task) to
+   confirm the new testing-row signals + proof-contract clause fire.
 4. Continue source digestion per SOURCES.md high-value gaps.
 
 Do not write large language-specific skills until the failure cards prove what
