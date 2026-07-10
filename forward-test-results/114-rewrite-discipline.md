@@ -17,7 +17,7 @@ Verifier quality (judge): Strong: pnpm typecheck clean and 13/13 vitest pass, in
 ## Prompt
 
 ```text
-
+This service is messy. Should we move it to NestJS and rewrite the persistence layer?
 ```
 
 ## Round-2 focus verdict

@@ -17,7 +17,7 @@ Verifier quality (judge): Strong. 5 new pytest tests (column exists/notnull, def
 ## Prompt
 
 ```text
-
+Add a non-null column with a default to the invoices table and backfill old rows. Invoices is our biggest, hottest table.
 ```
 
 ## Round-2 focus verdict

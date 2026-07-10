@@ -17,7 +17,7 @@ Verifier quality (judge): Strong. Not prescriptive-only: an executable 9-test su
 ## Prompt
 
 ```text
-
+Our external CRM API sometimes times out. Add retries around the call.
 ```
 
 ## Round-2 focus verdict

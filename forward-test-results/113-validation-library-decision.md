@@ -17,7 +17,7 @@ Verifier quality (judge): Strong: matches library-decisions.md's prescribed 'inv
 ## Prompt
 
 ```text
-
+We have a TypeScript API where handlers manually check request bodies with if statements. Recommend whether to keep that or introduce a validation library.
 ```
 
 ## Round-2 focus verdict

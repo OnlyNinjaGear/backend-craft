@@ -17,7 +17,7 @@ Verifier quality (judge): Strong. Cited named tests with inspected pytest output
 ## Prompt
 
 ```text
-
+Add an endpoint to fetch a project by id for the current user.
 ```
 
 ## Round-2 focus verdict

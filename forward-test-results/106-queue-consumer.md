@@ -17,7 +17,7 @@ Verifier quality (judge): Strong. 17 targeted tests covering duplicate delivery 
 ## Prompt
 
 ```text
-
+Implement a worker that consumes invoice events and emails customers.
 ```
 
 ## Round-2 focus verdict

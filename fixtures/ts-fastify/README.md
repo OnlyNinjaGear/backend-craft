@@ -61,11 +61,14 @@ Exactly 5 planted flaws. All live in `src/app.ts`.
 | POST `/transactions` (`src/app.ts`) | `await auditLog.record(...)` — properly awaited async call. |
 | POST `/transactions` (`src/app.ts`) | `try/catch` with explicit error response and no payload/secret leak. |
 
-Note: the coarse Semgrep floating-promise WARNING rule matches any call whose
-method name starts with `create|update|delete|send|publish|emit|fetch|request|query|execute|save`,
-so it will also flag awaited/assigned `db.query(...)`, `db.execute(...)`, and
-`reply.send(...)` calls here. Those are **intended false positives** for measuring
-rule noise, not planted flaws.
+Note: the Semgrep floating-promise rule was **retired** (2026-07-10) exactly
+because of the noise this fixture measured — Semgrep matches subexpressions, so
+awaited/assigned `db.query(...)` and `reply.send(...)` calls fired too
+(precision ~1/8; see `../../CHECKERS.md`). The `ts-floating-promise` plant at
+`src/app.ts:68` is therefore **not Semgrep-detectable by design**; its verifier
+is type-aware `@typescript-eslint/no-floating-promises`. Expected Semgrep hits
+for this fixture: exactly 3 (`mass-assignment-request-body`,
+`sql-template-query`, `sync-fs-in-code`).
 
 ## Files
 

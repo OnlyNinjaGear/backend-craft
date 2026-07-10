@@ -17,7 +17,7 @@ Verifier quality (judge): Strong. Cited specific test names with inspected outco
 ## Prompt
 
 ```text
-
+Add an endpoint that creates an order and calls a payment provider. Clients may retry on network failures.
 ```
 
 ## Round-2 focus verdict

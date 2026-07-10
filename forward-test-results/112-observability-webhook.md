@@ -17,7 +17,7 @@ Verifier quality (judge): Strong. 12 targeted new tests covering every changed b
 ## Prompt
 
 ```text
-
+Add metrics and logs for a new webhook processor.
 ```
 
 ## Round-2 focus verdict

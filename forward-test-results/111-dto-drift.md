@@ -17,7 +17,7 @@ Verifier quality (judge): Strong. Tests assert the exact DTO key set (contract-l
 ## Prompt
 
 ```text
-
+Return the new last_login_ip field on the user object so admins can see it.
 ```
 
 ## Round-2 focus verdict

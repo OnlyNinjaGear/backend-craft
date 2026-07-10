@@ -17,7 +17,7 @@ Verifier quality (judge): Strong. Every non-trivial dependency has a named verif
 ## Prompt
 
 ```text
-
+Design the backend foundation for a small B2B SaaS: users, organizations, projects, invoices, and webhooks. Use Python unless there is a strong reason not to. I want something maintainable for a team of 2.
 ```
 
 ## Round-2 focus verdict

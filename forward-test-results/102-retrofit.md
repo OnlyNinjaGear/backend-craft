@@ -17,7 +17,7 @@ Verifier quality (judge): Strong. Each stage ends green on pnpm typecheck && pnp
 ## Prompt
 
 ```text
-
+This backend already exists. Do not rewrite it. Inspect it and produce a staged hardening plan for the next 2 weeks.
 ```
 
 ## Round-2 focus verdict

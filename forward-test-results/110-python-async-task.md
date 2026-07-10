@@ -17,7 +17,7 @@ Verifier quality (judge): Excellent. Nine new tests map one-to-one to the reliab
 ## Prompt
 
 ```text
-
+In this Python async service, start a background enrichment task after each request.
 ```
 
 ## Round-2 focus verdict

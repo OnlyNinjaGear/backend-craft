@@ -88,3 +88,11 @@ Prefer existing project-local tools first:
 
 Use Semgrep/ast-grep for gaps the local toolchain does not cover. Do not write
 noisy regex-only detectors unless the signature is extremely stable.
+
+## Bounded hook
+
+`hooks/backend-craft-check.py` packages the pack as a PostToolUse hook:
+project-local tools first, Semgrep gap-filler on the changed file, max 5
+findings, session dedup, always exit 0, one-time no-local-checker warning,
+never claims safety. Wiring and test suite: `hooks/README.md`,
+`hooks/test-hook.sh` (14 assertions).

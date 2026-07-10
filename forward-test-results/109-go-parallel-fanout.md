@@ -17,7 +17,7 @@ Verifier quality (judge): Excellent — behavioral, failure-sensitive tests rath
 ## Prompt
 
 ```text
-
+In this Go service, parallelize calls to three downstream services in the request handler.
 ```
 
 ## Round-2 focus verdict

@@ -17,7 +17,7 @@ Verifier quality (judge): Strong: row-cap test (seeds 10,001 rows in an isolated
 ## Prompt
 
 ```text
-
+Add CSV export for all transactions from an HTTP endpoint in our TypeScript API.
 ```
 
 ## Round-2 focus verdict
