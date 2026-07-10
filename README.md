@@ -140,6 +140,22 @@ GitHub Actions запускает эти проверки в
 [docs/CASE_PIPELINE.md](docs/CASE_PIPELINE.md). Общие советы вроде "обрабатывай
 ошибки аккуратно" не принимаются.
 
+## Как помочь
+
+Если вы хотите присоединиться, начните с
+[docs/CONTRIBUTOR_GUIDE.md](docs/CONTRIBUTOR_GUIDE.md).
+Широкие идеи лучше сначала принести в
+[Discussions](https://github.com/OnlyNinjaGear/backend-craft/discussions), а
+конкретные кейсы — в issue по шаблону.
+
+Самые полезные вклады:
+
+- реальный backend-кейс с анонимизированным reducer;
+- официальный источник, который дает конкретный verifier;
+- checker с false-positive boundary;
+- fixture, которую можно запустить в CI;
+- слепой forward test.
+
 ## Документация
 
 | Документ | Что там |
@@ -151,6 +167,8 @@ GitHub Actions запускает эти проверки в
 | [docs/SOURCES.md](docs/SOURCES.md) | источники, которые можно использовать |
 | [docs/FORWARD_TESTS.md](docs/FORWARD_TESTS.md) | как проводить слепые тесты |
 | [docs/CASE_PIPELINE.md](docs/CASE_PIPELINE.md) | как превращать реальные баги в материал для скилла |
+| [docs/BACKGROUND_WORKER.md](docs/BACKGROUND_WORKER.md) | prompt для Claude Cowork / Claude Code routine |
+| [docs/CONTRIBUTOR_GUIDE.md](docs/CONTRIBUTOR_GUIDE.md) | как разработчикам помочь проекту |
 | [docs/WRITING_STYLE.md](docs/WRITING_STYLE.md) | как писать тексты без шаблонного тона |
 
 ## Что не входит в v0.1

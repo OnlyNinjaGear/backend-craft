@@ -14,6 +14,10 @@
 - добавлять новые доказательства к существующей failure card;
 - уточнять источники, если они меняют конкретное правило или verifier.
 
+Если вы пришли с новым кейсом, начните с
+[docs/CONTRIBUTOR_GUIDE.md](docs/CONTRIBUTOR_GUIDE.md). Для фоновой работы через
+Claude используйте [docs/BACKGROUND_WORKER.md](docs/BACKGROUND_WORKER.md).
+
 ## Что не принимается
 
 - общие советы без проверяемого failure mode;

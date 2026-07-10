@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and discussion
+    url: https://github.com/OnlyNinjaGear/backend-craft/discussions
+    about: Use discussions for broad ideas before turning them into a concrete case.

@@ -1,0 +1,64 @@
+name: Source digestion
+description: Propose a narrow official source to distill into backend-craft.
+title: "[source] "
+labels: ["source", "needs-triage"]
+body:
+  - type: input
+    id: source
+    attributes:
+      label: Source URL
+      description: Prefer official docs, standards, or mature tool docs.
+      placeholder: "https://..."
+    validations:
+      required: true
+  - type: input
+    id: scope
+    attributes:
+      label: Narrow scope
+      description: One topic only.
+      placeholder: "Fastify hook encapsulation and auth scope"
+    validations:
+      required: true
+  - type: textarea
+    id: claim
+    attributes:
+      label: What behavior should this change?
+      placeholder: "Agents should not assume a hook registered inside one plugin protects sibling routes."
+    validations:
+      required: true
+  - type: textarea
+    id: failure
+    attributes:
+      label: Failure mode
+      description: What bad backend code does this prevent?
+    validations:
+      required: true
+  - type: textarea
+    id: verifier
+    attributes:
+      label: Verifier idea
+      description: Test, checker, fixture, or review step.
+    validations:
+      required: true
+  - type: dropdown
+    id: target
+    attributes:
+      label: Expected target
+      options:
+        - Existing reference file
+        - Failure card
+        - Checker
+        - Fixture
+        - Reject after review
+        - Not sure
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: This is not a general "best practices" request.
+          required: true
+        - label: I checked docs/SOURCES.md for existing coverage.
+          required: true

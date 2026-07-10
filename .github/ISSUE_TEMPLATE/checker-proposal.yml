@@ -1,0 +1,53 @@
+name: Checker proposal
+description: Propose a Semgrep, ast-grep, hook, or other mechanical check.
+title: "[checker] "
+labels: ["checker", "needs-triage"]
+body:
+  - type: input
+    id: card
+    attributes:
+      label: Failure card
+      description: Which existing card does this checker support?
+      placeholder: "api-idempotency-missing-on-mutation-retry"
+    validations:
+      required: true
+  - type: textarea
+    id: bad_pattern
+    attributes:
+      label: Bad pattern
+      description: What should the checker catch?
+    validations:
+      required: true
+  - type: textarea
+    id: safe_pattern
+    attributes:
+      label: Safe contrast
+      description: What similar code should not be flagged?
+    validations:
+      required: true
+  - type: textarea
+    id: false_positives
+    attributes:
+      label: False-positive boundary
+      description: Where must the checker stay quiet?
+    validations:
+      required: true
+  - type: textarea
+    id: fixture
+    attributes:
+      label: Fixture or probe idea
+      description: How will we test true positive and false positive behavior?
+    validations:
+      required: true
+  - type: dropdown
+    id: checker_type
+    attributes:
+      label: Checker type
+      options:
+        - Semgrep
+        - ast-grep
+        - hook
+        - project-local tool bridge
+        - other
+    validations:
+      required: true

@@ -28,6 +28,8 @@
 | Документ | Что задает |
 |---|---|
 | [CASE_PIPELINE.md](CASE_PIPELINE.md) | как превращать реальные баги в карточки, проверки и tests |
+| [BACKGROUND_WORKER.md](BACKGROUND_WORKER.md) | prompt для фонового Claude worker'а |
+| [CONTRIBUTOR_GUIDE.md](CONTRIBUTOR_GUIDE.md) | как внешним разработчикам помогать проекту |
 | [WRITING_STYLE.md](WRITING_STYLE.md) | как писать README, docs и комментарии |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | правила для PR и локальные проверки |
 | [../SECURITY.md](../SECURITY.md) | как сообщать о проблемах безопасности |
