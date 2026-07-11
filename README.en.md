@@ -1,168 +1,174 @@
 # backend-craft
 
 [![CI](https://github.com/OnlyNinjaGear/backend-craft/actions/workflows/ci.yml/badge.svg)](https://github.com/OnlyNinjaGear/backend-craft/actions/workflows/ci.yml)
-![Channel](https://img.shields.io/badge/channel-main-blue)
-![Readiness](https://img.shields.io/badge/readiness-team%20pilot-yellowgreen)
+![Failure patterns](https://img.shields.io/badge/failure%20patterns-41-4c566a)
 ![Rules](https://img.shields.io/badge/semgrep-16%20rules-2ea44f)
-![Fixtures](https://img.shields.io/badge/fixtures-16%20planted%20flaws-orange)
+![Fixtures](https://img.shields.io/badge/fixtures-3%20runnable-d97706)
 
-`backend-craft` is a Claude Code/Codex skill package for backend engineering.
-It is designed to stop agents from shipping plausible backend code that fails
-under production conditions.
+[Русский](README.md)
 
-It is not a style guide and not a language encyclopedia. The skill routes work
-by **failure surface** first:
+A production-risk skill for Claude Code and Codex.
 
-- API contracts and compatibility
-- authorization, tenancy, PII, secrets, SSRF
-- persistence, migrations, transactions, indexes
-- retries, timeouts, queues, workers, cancellation, idempotency
-- observability, tests, CI, review discipline
-- Python, Go, and TypeScript/Node language adapters
+It helps coding agents design, review, and harden backends by checking API
+contracts, authorization boundaries, migrations, retries, timeouts,
+idempotency, and background jobs before those failures reach production.
 
-Current channel: **post-v0.1 `main` snapshot**. The immutable `v0.1` tag predates
-the latest evidence pack. Scope remains frozen unless explicitly reopened.
+**41 failure patterns · 16 Semgrep rules · 3 runnable fixtures · 16 planted flaws**
 
-## Can I Use It Now?
+[Install](#installation) · [Supported stacks](#supported-stacks) ·
+[How it works](#how-it-works) · [Project readiness](docs/STATUS.md)
 
-Yes. The current `main` snapshot is usable for a **team pilot** on new and
-existing backend projects. Frozen means the scope is controlled, not that the
-skill is unfinished.
+## What Developers Get
 
-| Surface | State | Evidence |
+| Task | What the skill does |
+|---|---|
+| New backend | helps choose the stack, libraries, API, data model, migrations, tests, and CI |
+| Existing project | reads the code and system boundaries before proposing staged changes |
+| New feature | checks contracts, permissions, data, retries, timeouts, and failure paths |
+| Review or audit | looks for defects with real blast radius instead of style arguments |
+| Library choice | compares risk reduction, adoption cost, and the verification path |
+
+Every material recommendation should end with a test, checker, measurement, or
+concrete verification plan.
+
+## Supported Stacks
+
+`Tested` means a dedicated runnable fixture plus blind agent tests. `Real-code
+checked` means the tooling was run on a real repository without a dedicated
+fixture. `Guidance` means sources and instructions exist, but dedicated
+validation does not.
+
+| Language or stack | Level | Evidence |
 |---|---|---|
-| Router and four work modes | Ready | Start, Retrofit, Harden, and Continue passed blind tests |
-| Python + FastAPI | Validated representative stack | 5 planted flaws plus Python async and observability forward tests |
-| Go + `net/http` | Validated representative stack | 6 planted flaws plus concurrency and payment forward tests |
-| TypeScript + Fastify | Validated representative stack | 5 planted flaws plus export, DTO, and rewrite forward tests |
-| NestJS | Observed on real code | checker and hook run on a mixed monorepo; no dedicated fixture |
-| PostgreSQL | Partially validated | guidance, migration tests, and a reducer; one verifier still has timing debt |
-| MongoDB, Django/DRF, Redis/BullMQ | Documented only | sources and recipes exist; dedicated fixtures and blind tests do not |
-| Kafka, RabbitMQ, Kubernetes | Outside v0.1 | no support claim |
+| Python + FastAPI | Tested | fixture with 5 production flaws; async and observability scenarios |
+| Go + `net/http` | Tested | fixture with 6 flaws; concurrency, cancellation, and payment scenarios |
+| TypeScript + Fastify | Tested | fixture with 5 flaws; DTO, export, and retrofit scenarios |
+| NestJS | Real-code checked | checker and hook validated on a real admin API |
+| PostgreSQL | Partial | migration scenarios, SQL checks, and a runnable reducer |
+| MongoDB, Django/DRF, Redis/BullMQ | Guidance | sources, failure cards, and stack recipes without dedicated fixtures |
 
-This is evidence for representative stacks and production failure surfaces,
-not a claim that an entire language is "100% covered." See the
-[readiness dashboard](docs/STATUS.md) for release gates and the next work queue.
+Kafka, RabbitMQ, and Kubernetes are outside the current scope. See the
+[readiness dashboard](docs/STATUS.md) for the complete evidence matrix and
+release gates.
 
-## What Is Included
+## How It Works
 
-```text
-.claude/skills/backend-craft/      # the installable skill
-  SKILL.md                         # router workflow
-  references/                      # risk-domain reference packs
-rules/semgrep/backend-craft.yml    # high-confidence Semgrep checks
-hooks/                             # optional bounded PostToolUse hook
-fixtures/                          # intentionally flawed backend fixtures
-forward-test-results/              # skill evaluation transcripts
-docs/                              # architecture, evidence, source map
-FAILURE_CARDS.md                   # failure-card corpus
-```
+The skill starts from the failure surface, not the language. It identifies what
+can change, loads only the matching reference packs, and verifies the result.
 
-## Install The Skill
+| Mode | When it runs | Output |
+|---|---|---|
+| **Start** | a backend begins from zero | stack, contracts, data, auth, reliability, tests, and CI foundation |
+| **Retrofit** | the backend already exists | inventory, P0/P1 risk map, and a staged hardening plan |
+| **Harden** | the whole backend needs an audit | findings by blast radius, minimal patches, and a verifier per change |
+| **Continue** | a feature or bugfix is in progress | impact read, scoped implementation, and proof of changed behavior |
 
-Use it as a project-local Claude Code skill:
-
-```bash
-mkdir -p /path/to/your-project/.claude/skills
-cp -R .claude/skills/backend-craft /path/to/your-project/.claude/skills/
-```
-
-The Semgrep pack (`rules/`) and the hook (`hooks/`) live outside the skill
-directory and are copied separately — you only need them if you want the
-mechanical checks and post-edit hints. The skill itself works without them.
-
-Then ask Claude Code to use `backend-craft` when building, reviewing, hardening,
-or choosing a backend stack.
-
-Example prompts:
-
-```text
-Use backend-craft to review this backend for production risks.
-```
+## Example Prompts
 
 ```text
 Use backend-craft to design the backend foundation for a small B2B SaaS.
 ```
 
 ```text
+Use backend-craft to review this existing backend for production risks.
+Do not rewrite it; give me a staged hardening plan.
+```
+
+```text
 Use backend-craft while adding this mutating endpoint. Clients may retry.
 ```
 
-## Optional Hook
-
-The optional hook runs cheap file-level checks after edits and feeds at most
-five advisory findings back to the agent. It always exits `0` and never claims a
-clean checker run means the backend is safe.
-
-See [hooks/README.md](hooks/README.md).
-
-## Validation Status
-
-The current `main` snapshot contains:
-
-- 41 failure cards, including 15 `production-tested` cards
-- 16 Semgrep rules: 2 `production-tested`, 11 `fixture-tested`, 3 `draft`
-- 3 runnable fixture projects with 16 planted flaws
-- 3 rounds of forward tests
-- real-backend validation on a mixed NestJS/Go/Python monorepo
-- a bounded hook with 14/14 acceptance assertions
-
-Status details live in [docs/CHECKERS.md](docs/CHECKERS.md) and
-[docs/EVIDENCE_LOG.md](docs/EVIDENCE_LOG.md).
-
-## Run Checks Locally
-
-Repository sanity checks:
-
-```bash
-uv run --with pyyaml python scripts/validate_repo.py
+```text
+Use backend-craft to review this pull request. Prioritize auth, data integrity,
+failure handling, and missing verification.
 ```
 
-Fixture suites:
+## Installation
+
+Copy the skill folder into a project that uses Claude Code:
 
 ```bash
-cd fixtures/python-fastapi && uv run pytest -q
-cd ../go-http && go vet ./... && go test ./...
-cd ../ts-fastify && pnpm install --frozen-lockfile && pnpm typecheck && pnpm test
+git clone https://github.com/OnlyNinjaGear/backend-craft.git
+mkdir -p /path/to/your-project/.claude/skills
+cp -R backend-craft/.claude/skills/backend-craft \
+  /path/to/your-project/.claude/skills/
 ```
 
-Semgrep pack:
+The skill works without extra tooling. The Semgrep pack and PostToolUse hook
+are installed separately.
 
-```bash
-uvx semgrep --config rules/semgrep/backend-craft.yml --no-git-ignore --exclude node_modules .
-```
+## Failure Surfaces
 
-Hook acceptance tests:
+| Area | Typical risks |
+|---|---|
+| API | contract drift, DTO leaks, incorrect status codes, unsafe webhooks |
+| Auth and tenancy | BOLA, missing tenant filters, roles, PII, secrets, SSRF |
+| Data | SQL injection, transactions around network calls, migrations, indexes, N+1 |
+| Reliability | retry storms, missing jitter/caps, timeout leaks, cancellation, duplicate delivery |
+| Queues and workers | idempotency, poison messages, unbounded concurrency, shutdown |
+| Observability | correlation, cardinality, redaction, failures without a signal |
+| Verification | happy-path-only tests, DB integration, contract diffs, migration proof |
+| Languages | Python async/exceptions, Go contexts/goroutines/errors, Node runtime boundaries |
 
-```bash
-hooks/test-hook.sh
-```
+## Why Trust It
 
-## Documentation
+The current snapshot contains 41 failure cards, including 15
+`production-tested` cards, and 16 Semgrep rules.
 
-- [docs/STATUS.md](docs/STATUS.md) — readiness, coverage matrix, and release gates
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — skill architecture and routing model
-- [FAILURE_CARDS.md](FAILURE_CARDS.md) — failure-card corpus
-- [docs/CHECKERS.md](docs/CHECKERS.md) — checker status and validation records
-- [docs/SOURCES.md](docs/SOURCES.md) — admitted source map
-- [docs/FORWARD_TESTS.md](docs/FORWARD_TESTS.md) — forward-test protocol
-- [docs/EVIDENCE_LOG.md](docs/EVIDENCE_LOG.md) — evidence/promotion log
-- [fixtures/README.md](fixtures/README.md) — fixture corpus
+| Artifact | Current state |
+|---|---:|
+| Failure cards | 41 |
+| Semgrep rules | 16 |
+| Rules: `production-tested` | 2 |
+| Rules: `fixture-tested` | 11 |
+| Rules: `draft` | 3 |
+| Fixtures | 3 projects, 16 planted flaws |
+| Forward tests | 3 rounds, 30 result files |
+| Real-code validation | mixed NestJS/Go/Python monorepo |
+| Hook acceptance | 14/14 assertions |
 
-## Development Boundary
+The fixtures look like ordinary green backends: they build and pass happy-path
+tests while retaining production-safety defects. Fresh agents receive tasks
+without the answer key, and separate judges evaluate their results.
 
-Do not expand the skill casually. New material should enter only when it can
-produce a failure card, verifier, checker, or source-backed playbook step.
+[Readiness dashboard](docs/STATUS.md) · [Evidence log](docs/EVIDENCE_LOG.md) ·
+[Forward-test protocol](docs/FORWARD_TESTS.md)
 
-Backlog items are intentionally deferred:
+## Optional Tooling
 
-- Flyway/Liquibase source digestion
-- Kafka consumer semantics
-- Sidekiq-class queue patterns
-- dedicated Redis/BullMQ runtime semantics
-- Kubernetes and deployment-platform scope
-- dedicated MongoDB and Django/DRF fixtures
-- opportunistic promotion of remaining fixture-tested Semgrep rules
+| Component | Purpose |
+|---|---|
+| [Semgrep pack](rules/semgrep/backend-craft.yml) | catches 16 high-confidence syntax patterns |
+| [PostToolUse hook](hooks/README.md) | surfaces up to 5 advisory findings after an edit without blocking the agent |
+| [Failure cards](FAILURE_CARDS.md) | record trigger, blast radius, safe pattern, verifier, and escape hatch |
+| [Fixtures](fixtures/README.md) | reproduce common defects and false-positive boundaries |
 
-Do not split this into language-specific skills unless future forward tests
-prove the router insufficient.
+A clean checker run is not proof that a backend is safe. Semantic failures such
+as BOLA or broken idempotency still require tests and review.
+
+## Project Status
+
+The current `main` snapshot is ready for a team pilot. Scope is controlled: new
+topics require a concrete failure signal and a verifiable result. Tag history,
+coverage levels, and the finite next-release queue live in
+[docs/STATUS.md](docs/STATUS.md).
+
+## Contributing
+
+Useful contributions are narrow and testable:
+
+- an anonymized production bug with a reducer;
+- an official source that implies a concrete verifier;
+- a checker with true-positive and false-positive boundaries;
+- a runnable fixture;
+- a blind forward test.
+
+Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the
+[contributor guide](docs/CONTRIBUTOR_GUIDE.md). Architecture, sources, and
+maintenance rules are indexed under [docs/](docs/README.md).
+
+## What This Project Does Not Claim
+
+- it does not make every backend production-ready with one prompt;
+- one tested framework does not prove complete language coverage;
+- it does not replace project-local tests, linters, security review, or team experience.

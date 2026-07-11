@@ -1,76 +1,115 @@
 # backend-craft
 
 [![CI](https://github.com/OnlyNinjaGear/backend-craft/actions/workflows/ci.yml/badge.svg)](https://github.com/OnlyNinjaGear/backend-craft/actions/workflows/ci.yml)
-![Channel](https://img.shields.io/badge/channel-main-blue)
-![Readiness](https://img.shields.io/badge/readiness-team%20pilot-yellowgreen)
+![Failure patterns](https://img.shields.io/badge/failure%20patterns-41-4c566a)
 ![Rules](https://img.shields.io/badge/semgrep-16%20rules-2ea44f)
-![Fixtures](https://img.shields.io/badge/fixtures-16%20planted%20flaws-orange)
+![Fixtures](https://img.shields.io/badge/fixtures-3%20runnable-d97706)
 
-[English README](README.en.md)
+[English](README.en.md)
 
-`backend-craft` — скилл для Claude Code и Codex. Он нужен, когда агент пишет,
-ревьюит или приводит в порядок backend.
+Production-risk скилл для Claude Code и Codex.
 
-Скилл не обещает "production-ready" одним запросом. Он делает более полезную
-вещь: заставляет агента перед правкой понять, где может сломаться система.
-API-контракт. Права. Tenant boundary. Миграция. Повторный webhook. Таймаут.
-Очередь. Фоновая задача.
+Помогает агенту проектировать, ревьюить и усиливать backend: проверять
+API-контракты, права, tenant boundaries, миграции, повторы, таймауты,
+идемпотентность и фоновые задачи до того, как проблема уйдет в production.
 
-Потом агент открывает нужную памятку и доказывает результат тестом, чекером или
-явным планом проверки.
+**41 failure pattern · 16 Semgrep rules · 3 runnable fixtures · 16 planted flaws**
 
-## Можно ли использовать сейчас
+[Установка](#установка) · [Поддерживаемые стеки](#поддерживаемые-стеки) ·
+[Как это работает](#как-это-работает) · [Готовность проекта](docs/STATUS.md)
 
-Да. Текущий `main` можно подключать к новому или существующему backend-проекту и
-использовать для работы и ревью. Текущий уровень — **team pilot**: основной
-workflow проверен, но проект еще не заявляет полное покрытие языков и
-фреймворков.
+## Что получает разработчик
 
-Последний неизменяемый тег `v0.1` старше текущего evidence-пакета. Для пилота
-используйте `main`; перед публичным релизом проекту нужен новый тег.
+| Задача | Что делает скилл |
+|---|---|
+| Новый backend | помогает выбрать стек, библиотеки, API, модель данных, миграции, тесты и CI |
+| Существующий проект | сначала читает код и границы системы, затем предлагает план без переписывания всего подряд |
+| Новая фича | проверяет контракты, права, данные, повторные вызовы, таймауты и failure paths |
+| Ревью или аудит | ищет ошибки с реальным blast radius, а не спорит о стиле |
+| Выбор библиотеки | сравнивает риски, стоимость внедрения и способ проверить решение |
 
-`Frozen` означает заморозку scope, а не незавершенность. Новые темы не
-добавляются без доказанного пробела, но исправления и новые evidence принимаются.
+Каждая существенная рекомендация должна закончиться тестом, checker'ом,
+измерением или конкретным verification plan.
 
-| Контур | Состояние | Что подтверждено |
+## Поддерживаемые стеки
+
+`Tested` означает dedicated fixture и слепые agent-тесты. `Real-code checked` —
+прогон на настоящем репозитории без отдельного fixture. `Guidance` — инструкции
+есть, но dedicated проверка еще не собрана.
+
+| Язык или стек | Уровень | Что есть |
 |---|---|---|
-| Router и 4 режима работы | Готов | Start, Retrofit, Harden и Continue прошли слепые тесты |
-| Python + FastAPI | Проверен как representative stack | fixture с 5 ошибками, Python async и observability forward tests |
-| Go + `net/http` | Проверен как representative stack | fixture с 6 ошибками, concurrency и payment forward tests |
-| TypeScript + Fastify | Проверен как representative stack | fixture с 5 ошибками, export, DTO и rewrite forward tests |
-| NestJS | Наблюдался на реальном коде | checker и hook прогнаны на mixed monorepo; отдельного fixture нет |
-| PostgreSQL | Частично проверен | инструкции, migration tests и reducer; один verifier требует устранить timing-зависимость |
-| MongoDB, Django/DRF, Redis/BullMQ | Только documented | есть источники и recipes, но нет dedicated fixtures и blind tests |
-| Kafka, RabbitMQ, Kubernetes | Вне `v0.1` | проект не заявляет их поддержку |
+| Python + FastAPI | Tested | fixture с 5 production flaws; async и observability scenarios |
+| Go + `net/http` | Tested | fixture с 6 flaws; concurrency, cancellation и payment scenarios |
+| TypeScript + Fastify | Tested | fixture с 5 flaws; DTO, export и retrofit scenarios |
+| NestJS | Real-code checked | checker и hook проверены на реальном admin API |
+| PostgreSQL | Partial | migration scenarios, SQL checks и runnable reducer |
+| MongoDB, Django/DRF, Redis/BullMQ | Guidance | sources, failure cards и stack recipes без dedicated fixtures |
 
-Это не означает, что «Python завершен на 100%». Проверен конкретный стек и
-набор production failure surfaces. Полная карта, открытые ворота следующего
-релиза и порядок работы для Claude лежат в
+Kafka, RabbitMQ и Kubernetes не входят в текущий scope. Полная матрица с
+доказательствами и открытыми воротами лежит в
 [docs/STATUS.md](docs/STATUS.md).
 
-## Когда использовать
+## Как это работает
 
-| Ситуация | Что должен сделать агент |
+Скилл начинает не с языка, а с поверхности риска. Он определяет, что может
+измениться, загружает только подходящие reference packs и проверяет результат.
+
+| Режим | Когда используется | Результат |
+|---|---|---|
+| **Start** | проект начинается с нуля | foundation: стек, контракты, данные, auth, reliability, tests и CI |
+| **Retrofit** | backend уже существует | inventory, карта P0/P1-рисков и поэтапный план исправлений |
+| **Harden** | нужен аудит всего backend | findings по blast radius, минимальные patches и verifier для каждого изменения |
+| **Continue** | добавляется фича или исправляется баг | impact read, точечная реализация и доказательство измененного поведения |
+
+## Примеры запросов
+
+```text
+Use backend-craft to design the backend foundation for a small B2B SaaS.
+```
+
+```text
+Use backend-craft to review this existing backend for production risks.
+Do not rewrite it; give me a staged hardening plan.
+```
+
+```text
+Use backend-craft while adding this mutating endpoint. Clients may retry.
+```
+
+```text
+Use backend-craft to review this pull request. Prioritize auth, data integrity,
+failure handling, and missing verification.
+```
+
+## Установка
+
+Скопируйте папку скилла в проект, где работает Claude Code:
+
+```bash
+git clone https://github.com/OnlyNinjaGear/backend-craft.git
+mkdir -p /path/to/your-project/.claude/skills
+cp -R backend-craft/.claude/skills/backend-craft \
+  /path/to/your-project/.claude/skills/
+```
+
+Сам скилл работает без дополнительных инструментов. Semgrep rules и
+PostToolUse hook подключаются отдельно.
+
+## Что он проверяет
+
+| Область | Типовые риски |
 |---|---|
-| Новый проект | выбрать стек, библиотеки, модель API, миграции, тесты и CI без ранних тупиков |
-| Существующий проект | сначала понять текущий стек и риски, потом предлагать правки |
-| Ревью backend-кода | искать не стиль, а ошибки с реальным радиусом поражения |
-| Новая фича | проверить контракты, данные, права, повторы, таймауты и тесты вокруг изменения |
-| Выбор библиотеки | объяснить, какой риск библиотека убирает и где она добавляет новый |
+| API | contract drift, DTO leaks, неправильные статусы, небезопасные webhooks |
+| Auth и tenancy | BOLA, пропущенный tenant filter, роли, PII, secrets, SSRF |
+| Данные | SQL injection, транзакции вокруг network calls, миграции, индексы, N+1 |
+| Надежность | retry storms, отсутствие jitter/caps, timeout leaks, cancellation, duplicate delivery |
+| Очереди и workers | idempotency, poison messages, unbounded concurrency, shutdown |
+| Observability | correlation, cardinality, redaction, ошибки без сигнала |
+| Verification | happy-path-only tests, DB integration, contract diff, migration proof |
+| Языки | Python async/exceptions, Go contexts/goroutines/errors, Node runtime boundaries |
 
-## Что внутри
-
-| Часть | Зачем она нужна |
-|---|---|
-| [`.claude/skills/backend-craft/`](.claude/skills/backend-craft/) | сам скилл, который можно положить в проект |
-| [`FAILURE_CARDS.md`](FAILURE_CARDS.md) | карточки типовых backend-ошибок |
-| [`rules/semgrep/backend-craft.yml`](rules/semgrep/backend-craft.yml) | проверки для паттернов, которые можно ловить механически |
-| [`hooks/`](hooks/) | необязательный PostToolUse hook для быстрых подсказок после правок |
-| [`fixtures/`](fixtures/) | три маленьких backend-проекта с заранее посаженными ошибками |
-| [`forward-test-results/`](forward-test-results/) | результаты слепых тестов: как агенты работали со скиллом |
-| [`docs/`](docs/) | архитектура, статусы, источники и правила пополнения |
-
-## Что уже проверено
+## Почему результатам можно доверять
 
 | Артефакт | Текущее состояние |
 |---|---:|
@@ -80,141 +119,53 @@ workflow проверен, но проект еще не заявляет пол
 | Rules со статусом `production-tested` | 2 |
 | Rules со статусом `fixture-tested` | 11 |
 | Rules со статусом `draft` | 3 |
-| Fixtures | 3 проекта, 16 посаженных ошибок |
-| Forward tests | 3 раунда |
+| Fixtures | 3 проекта, 16 planted flaws |
+| Forward tests | 3 раунда, 30 result files |
+| Real-code validation | mixed NestJS/Go/Python monorepo |
 | Hook acceptance | 14/14 assertions |
-| GitHub CI | включен |
 
-Подробности лежат в [docs/STATUS.md](docs/STATUS.md),
-[docs/CHECKERS.md](docs/CHECKERS.md) и
-[docs/EVIDENCE_LOG.md](docs/EVIDENCE_LOG.md).
+Fixtures намеренно выглядят как обычный зеленый backend: они собираются и
+проходят happy-path tests, но содержат production-safety defects. Отдельные
+агенты получают задачи без списка ответов, а результаты оцениваются отдельно.
 
-## Какие риски покрыты
+[Readiness dashboard](docs/STATUS.md) · [Evidence log](docs/EVIDENCE_LOG.md) ·
+[Forward-test protocol](docs/FORWARD_TESTS.md)
 
-| Область | Что проверяется |
+## Опциональные инструменты
+
+| Компонент | Зачем нужен |
 |---|---|
-| API | совместимость контрактов, DTO, статусы, ошибки, webhooks |
-| Auth и tenancy | BOLA, утечки между tenant'ами, роли, PII, секреты, SSRF |
-| Данные | SQL injection, транзакции, миграции, индексы, N+1 |
-| Надежность | таймауты, retry, jitter, cancellation, очереди, idempotency |
-| Наблюдаемость | request/job correlation, метрики без взрыва labels, redaction |
-| Тесты | failure-path tests, DB integration tests, contract diffs, migration proof |
-| Языки | Python async/exceptions, Go context/goroutines/errors, TypeScript runtime boundaries |
+| [Semgrep pack](rules/semgrep/backend-craft.yml) | ловит 16 high-confidence синтаксических паттернов |
+| [PostToolUse hook](hooks/README.md) | после правки показывает до 5 advisory findings и не блокирует агента |
+| [Failure cards](FAILURE_CARDS.md) | объясняют trigger, blast radius, safe pattern, verifier и escape hatch |
+| [Fixtures](fixtures/README.md) | воспроизводят типовые ошибки и границы false positives |
 
-## Установка
+Чистый checker run не доказывает безопасность backend. Семантические ошибки —
+например BOLA или неверная идемпотентность — требуют теста и review.
 
-Скопируйте скилл в проект, где работает Claude Code:
+## Статус проекта
 
-```bash
-mkdir -p /path/to/your-project/.claude/skills
-cp -R .claude/skills/backend-craft /path/to/your-project/.claude/skills/
-```
-
-Semgrep-пак (`rules/`) и hook (`hooks/`) лежат вне папки скилла и копируются
-отдельно — они нужны, только если вы хотите механические проверки и подсказки
-после правок. Сам скилл работает и без них.
-
-Дальше можно просить агента работать с ним явно:
-
-```text
-Use backend-craft to review this backend for production risks.
-```
-
-```text
-Use backend-craft to design the backend foundation for a small B2B SaaS.
-```
-
-```text
-Use backend-craft while adding this mutating endpoint. Clients may retry.
-```
-
-## Hook
-
-В [hooks/](hooks/) есть необязательный hook. Он запускается после правки файла и
-дает агенту короткие замечания по измененному backend-коду.
-
-| Свойство | Поведение |
-|---|---|
-| Режим | только советует |
-| Exit code | всегда `0`, чтобы не ломать работу агента |
-| Лимит | максимум 5 замечаний за событие |
-| Dedup | одно и то же замечание показывается один раз за session |
-| Приоритет | сначала локальные проверки проекта, потом Semgrep |
-| Ограничение | тишина от hook не значит, что backend безопасен |
-
-Как подключить: [hooks/README.md](hooks/README.md).
-
-## Локальные проверки
-
-| Проверка | Команда |
-|---|---|
-| Форма репозитория | `uv run --with pyyaml python scripts/validate_repo.py` |
-| Python fixture | `cd fixtures/python-fastapi && uv run pytest -q` |
-| Go fixture | `cd fixtures/go-http && go vet ./... && go test ./...` |
-| TypeScript fixture | `cd fixtures/ts-fastify && pnpm install --frozen-lockfile && pnpm typecheck && pnpm test` |
-| Semgrep pack | `uvx semgrep --config rules/semgrep/backend-craft.yml --no-git-ignore --exclude node_modules .` |
-| Hook acceptance | `hooks/test-hook.sh` |
-
-GitHub Actions запускает эти проверки в
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml).
-
-## Как развивать
-
-`v0.1` заморожен. Это значит: не добавлять новые языки, очереди, базы данных и
-большие разделы просто потому, что они полезны.
-
-Новая информация попадает в скилл только если из нее получается хотя бы одно:
-
-- failure card;
-- verifier;
-- checker;
-- шаг playbook со ссылкой на источник.
-
-Реальные кейсы нужно прогонять через
-[docs/CASE_PIPELINE.md](docs/CASE_PIPELINE.md). Общие советы вроде "обрабатывай
-ошибки аккуратно" не принимаются.
+Текущий `main` готов для командного пилота. Scope контролируется: новые темы не
+добавляются без конкретного failure signal и проверяемого результата. История
+тегов, точные уровни покрытия и конечная очередь следующего релиза находятся в
+[docs/STATUS.md](docs/STATUS.md).
 
 ## Как помочь
 
-Если вы хотите присоединиться, начните с
-[docs/CONTRIBUTOR_GUIDE.md](docs/CONTRIBUTOR_GUIDE.md).
-Широкие идеи лучше сначала принести в
-[Discussions](https://github.com/OnlyNinjaGear/backend-craft/discussions), а
-конкретные кейсы — в issue по шаблону.
+Полезный вклад — это не новый раздел «про Kafka», а один проверяемый кейс:
 
-Самые полезные вклады:
-
-- реальный backend-кейс с анонимизированным reducer;
-- официальный источник, который дает конкретный verifier;
-- checker с false-positive boundary;
-- fixture, которую можно запустить в CI;
+- анонимизированный production bug с reducer;
+- официальный источник, из которого следует конкретный verifier;
+- checker с true-positive и false-positive boundary;
+- runnable fixture;
 - слепой forward test.
 
-## Документация
+Начните с [CONTRIBUTING.md](CONTRIBUTING.md) и
+[руководства для контрибьюторов](docs/CONTRIBUTOR_GUIDE.md). Архитектура,
+источники и правила пополнения собраны в [docs/](docs/README.md).
 
-| Документ | Что там |
-|---|---|
-| [docs/README.md](docs/README.md) | короткая навигация |
-| [docs/STATUS.md](docs/STATUS.md) | готовность, coverage matrix и следующие релизные ворота |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | почему скилл устроен как router, а не как набор языковых шпаргалок |
-| [FAILURE_CARDS.md](FAILURE_CARDS.md) | карточки backend-ошибок |
-| [docs/CHECKERS.md](docs/CHECKERS.md) | статусы Semgrep rules и проверок |
-| [docs/SOURCES.md](docs/SOURCES.md) | источники, которые можно использовать |
-| [docs/FORWARD_TESTS.md](docs/FORWARD_TESTS.md) | как проводить слепые тесты |
-| [docs/CASE_PIPELINE.md](docs/CASE_PIPELINE.md) | как превращать реальные баги в материал для скилла |
-| [docs/BACKGROUND_WORKER.md](docs/BACKGROUND_WORKER.md) | prompt для Claude Cowork / Claude Code routine |
-| [docs/CONTRIBUTOR_GUIDE.md](docs/CONTRIBUTOR_GUIDE.md) | как разработчикам помочь проекту |
-| [docs/WRITING_STYLE.md](docs/WRITING_STYLE.md) | как писать тексты без шаблонного тона |
+## Что проект не обещает
 
-## Что не входит в v0.1
-
-| Тема | Почему отложена |
-|---|---|
-| Flyway / Liquibase | Java/JVM scope пока не открыт |
-| Kafka consumer semantics | event-stream scope пока не открыт |
-| Sidekiq-class queues | Ruby/Rails scope пока не открыт |
-| Redis/BullMQ runtime semantics | есть рекомендация по выбору, но нет отдельного fixture и failure suite |
-| Kubernetes и deployment platform | infrastructure scope пока не открыт |
-| MongoDB и Django/DRF fixtures | есть documented guidance, но нет отдельной runnable проверки |
-| Новые `production-tested` promotions | нужны подходящие реальные backend-кейсы |
-| Отдельные языковые скиллы | пока router-модель проходит forward tests |
+- не превращает любой backend в production-ready одним запросом;
+- не считает один проверенный framework доказательством полного покрытия языка;
+- не заменяет project-local tests, linters, security review и опыт команды.
