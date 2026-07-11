@@ -1,5 +1,11 @@
 # backend-craft
 
+[![CI](https://github.com/OnlyNinjaGear/backend-craft/actions/workflows/ci.yml/badge.svg)](https://github.com/OnlyNinjaGear/backend-craft/actions/workflows/ci.yml)
+![Channel](https://img.shields.io/badge/channel-main-blue)
+![Readiness](https://img.shields.io/badge/readiness-team%20pilot-yellowgreen)
+![Rules](https://img.shields.io/badge/semgrep-16%20rules-2ea44f)
+![Fixtures](https://img.shields.io/badge/fixtures-16%20planted%20flaws-orange)
+
 `backend-craft` is a Claude Code/Codex skill package for backend engineering.
 It is designed to stop agents from shipping plausible backend code that fails
 under production conditions.
@@ -14,8 +20,29 @@ by **failure surface** first:
 - observability, tests, CI, review discipline
 - Python, Go, and TypeScript/Node language adapters
 
-Current release: **v0.1 frozen**. Further source digestion and rule promotion
-are backlog work unless explicitly reopened.
+Current channel: **post-v0.1 `main` snapshot**. The immutable `v0.1` tag predates
+the latest evidence pack. Scope remains frozen unless explicitly reopened.
+
+## Can I Use It Now?
+
+Yes. The current `main` snapshot is usable for a **team pilot** on new and
+existing backend projects. Frozen means the scope is controlled, not that the
+skill is unfinished.
+
+| Surface | State | Evidence |
+|---|---|---|
+| Router and four work modes | Ready | Start, Retrofit, Harden, and Continue passed blind tests |
+| Python + FastAPI | Validated representative stack | 5 planted flaws plus Python async and observability forward tests |
+| Go + `net/http` | Validated representative stack | 6 planted flaws plus concurrency and payment forward tests |
+| TypeScript + Fastify | Validated representative stack | 5 planted flaws plus export, DTO, and rewrite forward tests |
+| NestJS | Observed on real code | checker and hook run on a mixed monorepo; no dedicated fixture |
+| PostgreSQL | Partially validated | guidance, migration tests, and a reducer; one verifier still has timing debt |
+| MongoDB, Django/DRF, Redis/BullMQ | Documented only | sources and recipes exist; dedicated fixtures and blind tests do not |
+| Kafka, RabbitMQ, Kubernetes | Outside v0.1 | no support claim |
+
+This is evidence for representative stacks and production failure surfaces,
+not a claim that an entire language is "100% covered." See the
+[readiness dashboard](docs/STATUS.md) for release gates and the next work queue.
 
 ## What Is Included
 
@@ -71,7 +98,7 @@ See [hooks/README.md](hooks/README.md).
 
 ## Validation Status
 
-v0.1 contains:
+The current `main` snapshot contains:
 
 - 41 failure cards, including 15 `production-tested` cards
 - 16 Semgrep rules: 2 `production-tested`, 11 `fixture-tested`, 3 `draft`
@@ -113,6 +140,7 @@ hooks/test-hook.sh
 
 ## Documentation
 
+- [docs/STATUS.md](docs/STATUS.md) — readiness, coverage matrix, and release gates
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — skill architecture and routing model
 - [FAILURE_CARDS.md](FAILURE_CARDS.md) — failure-card corpus
 - [docs/CHECKERS.md](docs/CHECKERS.md) — checker status and validation records
@@ -131,6 +159,9 @@ Backlog items are intentionally deferred:
 - Flyway/Liquibase source digestion
 - Kafka consumer semantics
 - Sidekiq-class queue patterns
+- dedicated Redis/BullMQ runtime semantics
+- Kubernetes and deployment-platform scope
+- dedicated MongoDB and Django/DRF fixtures
 - opportunistic promotion of remaining fixture-tested Semgrep rules
 
 Do not split this into language-specific skills unless future forward tests

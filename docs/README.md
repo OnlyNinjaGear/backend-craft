@@ -9,7 +9,7 @@
 
 | Документ | Зачем читать |
 |---|---|
-| [STATUS.md](STATUS.md) | что входит в `v0.1` и что намеренно не входит |
+| [STATUS.md](STATUS.md) | готовность, coverage matrix и конечная очередь следующего релиза |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | почему выбран один router skill |
 | [../FAILURE_CARDS.md](../FAILURE_CARDS.md) | список ошибок, на которых держится скилл |
 | [SOURCES.md](SOURCES.md) | какие источники можно использовать как опору |

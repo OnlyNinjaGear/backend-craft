@@ -134,10 +134,15 @@ def _rule_counts() -> tuple[int, dict[str, int]]:
     return len(rules), by_status
 
 
-def _card_count() -> int:
-    ids = re.findall(r"^## ([a-z0-9-]+)$", read(CARDS), re.MULTILINE)
+def _card_counts() -> tuple[int, dict[str, int]]:
+    text = read(CARDS)
+    ids = re.findall(r"^## ([a-z0-9-]+)$", text, re.MULTILINE)
     # 'card-id' is the placeholder header inside the "Card template" section.
-    return len([cid for cid in ids if cid != "card-id"])
+    card_ids = [cid for cid in ids if cid != "card-id"]
+    by_status: dict[str, int] = {}
+    for status in re.findall(r"^Status: ([a-z-]+)", text, re.MULTILINE):
+        by_status[status] = by_status.get(status, 0) + 1
+    return len(card_ids), by_status
 
 
 def validate_doc_counts() -> None:
@@ -148,8 +153,12 @@ def validate_doc_counts() -> None:
     or card added without a doc update is a build failure, not a silent drift.
     """
     n_rules, by_status = _rule_counts()
-    n_cards = _card_count()
+    n_cards, card_statuses = _card_counts()
     n_draft = by_status.get("draft", 0)
+    n_fixture = by_status.get("fixture-tested", 0)
+    n_production = by_status.get("production-tested", 0)
+    n_card_draft = card_statuses.get("draft", 0)
+    n_card_production = card_statuses.get("production-tested", 0)
 
     readme = ROOT / "README.md"
     readme_en = ROOT / "README.en.md"
@@ -160,11 +169,18 @@ def validate_doc_counts() -> None:
         (readme, "README badge rule count", r"semgrep-(\d+)%20rules", n_rules),
         (readme, "README 'Semgrep rules' row", r"\|\s*Semgrep rules\s*\|\s*(\d+)\s*\|", n_rules),
         (readme, "README 'Failure cards' row", r"\|\s*Failure cards\s*\|\s*(\d+)\s*\|", n_cards),
+        (readme, "README production card row", r"\|\s*Карточки со статусом `production-tested`\s*\|\s*(\d+)\s*\|", n_card_production),
         (readme, "README 'draft' rules row", r"\|\s*Rules со статусом `draft`\s*\|\s*(\d+)\s*\|", n_draft),
         (readme_en, "README.en cards", r"(\d+)\s+failure cards", n_cards),
         (readme_en, "README.en rules", r"(\d+)\s+Semgrep rules", n_rules),
-        (status, "STATUS cards", r"(\d+)\s+failure cards", n_cards),
-        (status, "STATUS rules", r"(\d+)\s+Semgrep rules", n_rules),
+        (readme_en, "README.en production cards", r"including\s+(\d+)\s+`production-tested` cards", n_card_production),
+        (status, "STATUS cards", r"\|\s*Failure cards\s*\|\s*(\d+)\s*\|", n_cards),
+        (status, "STATUS production cards", r"\|\s*Cards со статусом `production-tested`\s*\|\s*(\d+)\s*\|", n_card_production),
+        (status, "STATUS draft cards", r"\|\s*Cards со статусом `draft`\s*\|\s*(\d+)\s*\|", n_card_draft),
+        (status, "STATUS rules", r"\|\s*Semgrep rules\s*\|\s*(\d+)\s*\|", n_rules),
+        (status, "STATUS production rules", r"\|\s*Rules со статусом `production-tested`\s*\|\s*(\d+)\s*\|", n_production),
+        (status, "STATUS fixture rules", r"\|\s*Rules со статусом `fixture-tested`\s*\|\s*(\d+)\s*\|", n_fixture),
+        (status, "STATUS draft rules", r"\|\s*Rules со статусом `draft`\s*\|\s*(\d+)\s*\|", n_draft),
     ]
     for path, label, pattern, expected in checks:
         match = re.search(pattern, read(path))
