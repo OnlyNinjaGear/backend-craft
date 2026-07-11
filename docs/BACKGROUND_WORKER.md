@@ -6,6 +6,12 @@ routine или отдельной сессии Claude Code.
 Цель worker'а — не "дообучать модель". Он улучшает репозиторий: находит
 проверяемые backend-кейсы, сжимает их до failure modes и готовит маленькие PR.
 
+## Режим implementation evidence
+
+Режим implementation-evidence регулируется отдельным документом:
+[`docs/IMPLEMENTATION_EVIDENCE_PASS.md`](IMPLEMENTATION_EVIDENCE_PASS.md). Его
+правила здесь не дублируются.
+
 ## Что выбрать
 
 | Инструмент | Когда удобен |
