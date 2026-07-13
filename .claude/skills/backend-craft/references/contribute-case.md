@@ -72,14 +72,22 @@ private. On "no" -> stop; offer to save it to a local file instead.
 
 ## Step 4 — Submit (only after "yes")
 
-A. One-click prefilled issue (no tooling needed). Build this URL, URL-encoding
-   the title and body, and give it to the user to open, review once more in
-   GitHub, and press Submit:
+This repo has `blank_issues_enabled: false` — a plain title/body URL does
+NOT work here. Submission must go through the "Real backend case" issue
+form (`real-backend-case.yml`), which applies `case` + `needs-triage`
+automatically.
 
-   https://github.com/OnlyNinjaGear/backend-craft/issues/new?labels=case,needs-triage&title=<[case] short summary>&body=<full case>
+A. One-click prefilled FORM (no tooling needed). Build a URL against the
+   template with the form's own field ids, URL-encoding each value, and give
+   it to the user to open, review once more in GitHub, and press Submit:
 
-   If the body is too long for a URL, use method B, or hand the user the text to
-   paste into the "Real backend case" issue template.
+   https://github.com/OnlyNinjaGear/backend-craft/issues/new?template=real-backend-case.yml&title=<[case] short summary>&summary=<Summary>&stack=<Stack>&failure_mode=<Failure mode>&evidence=<Evidence>&verifier=<Verifier idea>
+
+   The user still picks "Best target artifact" in the dropdown and ticks the
+   2 privacy checkboxes themselves — those aren't prefillable. If the URL
+   would exceed roughly 8000 characters, open the blank form instead
+   (`.../issues/new?template=real-backend-case.yml`) and hand the user the
+   text to paste into each field.
 
 B. GitHub CLI, only if `gh auth status` shows the user is authenticated:
 
@@ -90,6 +98,22 @@ B. GitHub CLI, only if `gh auth status` shows the user is authenticated:
 
 Never use a token that is not the user's own. Never automate past the
 confirmation. After submission, give the user the issue URL.
+
+### No GitHub account
+
+If the contributor has no GitHub account, submission (Step 4) is blocked —
+there is no anonymous or shared-identity path, by design (see Hard rules).
+Offer, in order:
+
+1. Suggest creating a free GitHub account (~2 minutes, no payment, an email
+   is enough) and then continuing with method A above.
+2. If they decline, do NOT submit on their behalf under any other identity.
+   Save the finished, scrubbed case to a local file instead, and tell them
+   it can be posted later by them or handed to someone who already has an
+   account.
+
+This is a deliberate gap, not a missing feature: no background service or
+shared token exists to route around it.
 
 ## Turning a reviewer's corrections into cases (the "review-miss" handle)
 
