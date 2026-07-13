@@ -146,3 +146,16 @@ the files you read.
 - P3: style or local cleanup with low production risk
 
 Approve only when no P0/P1 issues remain and changed behavior has proof.
+
+## Contributing a case (opt-in, off by default)
+
+After work that surfaces a *generalizable, repeatable* failure mode — useful to
+other projects, not a bug specific to this codebase — you may offer once to
+contribute an anonymized case to backend-craft. The strongest source is an agent
+miss caught by a reviewer or test (e.g. Codex correcting the agent): capture the
+transferable lesson, not process nitpicks. This is opt-in: never send anything
+without the user's explicit confirmation, always under the user's own GitHub
+account, and only after showing the exact anonymized text. If the user shows
+interest, load `references/contribute-case.md` and follow it exactly. Do not
+offer for codebase-specific bugs, process/tooling nitpicks, or anything you
+cannot fully anonymize.
