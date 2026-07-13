@@ -9,6 +9,12 @@ Backend safety skill for building, retrofitting, and hardening services. This
 skill is not a style guide. It is a workflow for preventing common production
 failures.
 
+Source and updates: https://github.com/OnlyNinjaGear/backend-craft — current
+version in `.claude-plugin/plugin.json` next to this file (plugin installs)
+or in the repo's `v*` git tags. To update: `/plugin marketplace update
+backend-craft-marketplace` (plugin install), or `git pull` + re-copy
+`.claude/skills/backend-craft/` over this folder (manual/raw install).
+
 ## Operating rule
 
 Do not start with language advice. Start with blast radius.
