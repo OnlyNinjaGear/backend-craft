@@ -1,0 +1,14 @@
+{
+  "name": "backend-craft-marketplace",
+  "owner": {
+    "name": "OnlyNinjaGear",
+    "url": "https://github.com/OnlyNinjaGear/backend-craft"
+  },
+  "plugins": [
+    {
+      "name": "backend-craft",
+      "source": "./.claude/skills/backend-craft",
+      "description": "Production-risk skill for backend engineering: API contracts, auth/tenant boundaries, migrations, retries, idempotency, background jobs."
+    }
+  ]
+}

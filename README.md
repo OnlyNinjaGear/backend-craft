@@ -84,7 +84,17 @@ failure handling, and missing verification.
 
 ## Установка
 
-Скопируйте папку скилла в проект, где работает Claude Code:
+Через plugin marketplace (рекомендуется — даёт автообновления):
+
+```
+/plugin marketplace add OnlyNinjaGear/backend-craft
+/plugin install backend-craft@backend-craft-marketplace
+```
+
+Обновление: `/plugin marketplace update backend-craft-marketplace`, либо
+дождаться авто-апдейта и выполнить `/reload-plugins`.
+
+Ручной способ (без автообновлений, если marketplace недоступен):
 
 ```bash
 git clone https://github.com/OnlyNinjaGear/backend-craft.git

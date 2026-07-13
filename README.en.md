@@ -85,7 +85,17 @@ failure handling, and missing verification.
 
 ## Installation
 
-Copy the skill folder into a project that uses Claude Code:
+Via the plugin marketplace (recommended — gives you auto-updates):
+
+```
+/plugin marketplace add OnlyNinjaGear/backend-craft
+/plugin install backend-craft@backend-craft-marketplace
+```
+
+Update: `/plugin marketplace update backend-craft-marketplace`, or wait for
+the auto-update notice and run `/reload-plugins`.
+
+Manual install (no auto-updates, if the marketplace is unreachable):
 
 ```bash
 git clone https://github.com/OnlyNinjaGear/backend-craft.git
