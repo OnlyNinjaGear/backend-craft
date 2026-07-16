@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "number": 2,
+    "title": "[case] Auth middleware exempts a prefix; a non-framework handler under it ships unauthenticated",
+    "labels": [
+      "needs-triage",
+      "case"
+    ],
+    "created_at": "2026-07-16T09:07:49Z",
+    "user": "OnlyNinjaGear",
+    "body": "### Summary\n\nA global auth middleware skips a URL prefix (e.g. everything under `/api/*`) on the assumption that the framework mounted there authenticates each handler itself. A plain **non-framework** handler registered under that same prefix — a raw view, a small utility/health endpoint, a mounted sub-app — inherits neither the middleware check (it's exempted) nor the framework's per-view auth (it isn't a framework view). It ships fully unauthenticated, and nothing errors.\n\n### Stack\n\nDjango + DRF (generalizes to any two-layer auth: gateway/middleware + per-view framework auth)\n\n### Failure mode\n\nDeny-by-default is violated at the seam between two auth layers. This is a cross-layer prefix-exemption gap, distinct from auth-middleware-scope-miss (which is about encapsulation among sibling routers).\n\n### Evidence\n\n```python\nclass AuthEverywhereExceptApi:\n    def __call__(self, request):\n        if request.path.startswith('/api/'):  # trusts DRF to authenticate\n            return self.get_response(request)\n        if not request.user.is_authenticated:\n            return redirect('login')\n        return self.get_response(request)\n\ndef list_internal_files(request):  # NOT a DRF view, under /api\n    return JsonResponse({'files': _list_share()})\nurlpatterns = [path('api/check-files/', list_internal_files)]\n```\n\n### Verifier idea\n\nUnauthenticated route-table sweep over the whole URLconf (not just the framework router): every route under the exempted prefix not in a public allowlist must return 401/403 with no credentials.\n\n### Best target artifact\n\nNew failure card\n\n### Privacy check\n\n- [x] I removed company names, credentials, PII, private URLs, and customer data.\n- [x] I checked existing failure cards for duplicates."
+  }
+]
