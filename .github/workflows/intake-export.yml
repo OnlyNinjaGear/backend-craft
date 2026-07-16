@@ -1,0 +1,65 @@
+name: intake-export
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  issues:
+    types: [opened, edited, labeled, unlabeled, reopened, closed, deleted, transferred]
+  workflow_dispatch:
+
+permissions:
+  issues: read
+  contents: write
+
+concurrency:
+  group: intake-export
+  cancel-in-progress: true
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build queue.json and publish to intake-cache
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          gh api --paginate \
+            "repos/$REPO/issues?state=open&labels=needs-triage&per_page=100" \
+            > raw_issues.json
+          jq '[ .[]
+                | select(.pull_request | not)
+                | { number, title,
+                    labels: [ .labels[].name ],
+                    created_at,
+                    user: .user.login,
+                    body: ( .body // "" ) } ]
+              | sort_by(.created_at)' raw_issues.json > queue.json
+          echo "queue size: $(jq "length" queue.json)"
+
+          MAIN_SHA=$(gh api "repos/$REPO/git/ref/heads/main" --jq '.object.sha')
+          if ! gh api "repos/$REPO/git/ref/heads/intake-cache" >/dev/null 2>&1; then
+            gh api -X POST "repos/$REPO/git/refs" \
+              -f ref="refs/heads/intake-cache" -f sha="$MAIN_SHA" >/dev/null
+            echo "created intake-cache branch"
+          fi
+
+          OLD_SHA=""
+          if gh api "repos/$REPO/contents/queue.json?ref=intake-cache" > cur.json 2>/dev/null; then
+            OLD_SHA=$(jq -r '.sha' cur.json)
+            jq -r '.content' cur.json | base64 -d > old_queue.json || true
+            if cmp -s queue.json old_queue.json; then
+              echo "queue unchanged; nothing to publish"
+              exit 0
+            fi
+          fi
+
+          CONTENT=$(base64 -w0 queue.json)
+          gh api -X PUT "repos/$REPO/contents/queue.json" \
+            -f message="intake: refresh needs-triage queue" \
+            -f branch="intake-cache" \
+            -f content="$CONTENT" \
+            ${OLD_SHA:+-f sha="$OLD_SHA"} >/dev/null
+          echo "published queue.json to intake-cache"
