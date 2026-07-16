@@ -53,5 +53,16 @@
     "created_at": "2026-07-16T09:16:06Z",
     "user": "OnlyNinjaGear",
     "body": "### Summary\n\nA permission mixin decides read vs write by HTTP method: safe methods get a light check, everything else requires a write permission flag. Two operations that are semantically reads (search-by-key, bulk-get) are exposed over POST, so they land in the write branch. Instead of classifying the operation, the code sets permission_flag = None for those actions — removing authorization rather than correcting it. Any authenticated principal can now run them.\n\n### Stack\n\nDjango + DRF (method-based authorization exists in many frameworks)\n\n### Failure mode\n\nMethod-based authZ misclassifies read-over-POST / write-over-GET; the remediation disables the guard (flag = None) instead of mapping action to required permission. The bypass is invisible because it looks like an intentional 'this action is a read' comment.\n\n### Evidence\n\n```python\nclass ImageLinkViewSet(PermissionFlagMixin, ModelViewSet):\n    permission_flag = \"can_moderate\"\n    def check_permissions(self, request):\n        if self.action in {\"by_key\", \"bulk_get\"}:  # reads over POST\n            self.permission_flag = None  # authZ removed, not fixed\n            super().check_permissions(request)\n            self.permission_flag = \"can_moderate\"\n            return\n        super().check_permissions(request)\n```\n\n### Verifier idea\n\nA principal without the read permission must get 403 on POST .../by-key/. Safe pattern: an explicit action-to-required-permission map (per-action authorization), not method inference and not nulling the flag.\n\n### Best target artifact\n\nNew failure card\n\n### Privacy check\n\n- [x] I removed company names, credentials, PII, private URLs, and customer data.\n- [x] I checked existing failure cards for duplicates."
+  },
+  {
+    "number": 7,
+    "title": "[case] No default throttle; token/login endpoint unthrottled (credential brute force)",
+    "labels": [
+      "needs-triage",
+      "case"
+    ],
+    "created_at": "2026-07-16T09:16:37Z",
+    "user": "OnlyNinjaGear",
+    "body": "### Summary\n\nNo global rate limiting is configured; a single endpoint has an ad-hoc throttle, the rest have none. The token/login endpoint accepts unlimited attempts → credential brute force; heavy list/bulk endpoints have no per-caller cost ceiling.\n\n### Stack\n\nDjango + DRF (applies to any API without gateway-level rate limiting)\n\n### Failure mode\n\nUnrestricted resource consumption (OWASP API4) plus brute-forceable auth (no throttle on the token endpoint). Compounds with a custom authenticator that does a DB user lookup per request — a cheap request amplifies into DB load.\n\n### Evidence\n\n```python\nREST_FRAMEWORK = {  # no DEFAULT_THROTTLE_CLASSES / DEFAULT_THROTTLE_RATES\n    \"DEFAULT_AUTHENTICATION_CLASSES\": (...),\n}\nurlpatterns = [path(\"api/token/\", TokenObtainPairView.as_view())]  # no dedicated throttle\n```\n\n### Verifier idea\n\nTest: N+1 rapid requests to the token endpoint return 429; assert a dedicated stricter throttle scope on the auth/login route distinct from the general API rate.\n\n### Best target artifact\n\nChecker\n\n### Privacy check\n\n- [x] I removed company names, credentials, PII, private URLs, and customer data.\n- [x] I checked existing failure cards for duplicates."
   }
 ]
