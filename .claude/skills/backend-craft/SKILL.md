@@ -121,6 +121,7 @@ matching mid-task (e.g. a SQL fix discovered while writing tests).
 | new service, stack choice, scaffold, project setup | `references/stack-recipes.md` |
 | framework choice, dependency choice, library replacement, custom code vs library | `references/library-decisions.md` |
 | Python, Go, TypeScript/Node idioms or tool rules | `references/language-adapters.md` |
+| self-hosted or local model inference, model serving service, GPU arch/driver, CUDA wheels, Apple Silicon / MLX / Metal, Hugging Face download on a node, embedding/OCR/moderation performance, overlay network to an inference node | `references/self-hosted-inference.md` |
 
 ## Final proof contract
 
