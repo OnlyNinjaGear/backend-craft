@@ -51,7 +51,7 @@ jobs:
             5. If green: create branch case-triage/<date-and-issue>, commit the card,
                reducer and a docs/EVIDENCE_LOG.md draft entry, then open a Pull
                Request with `gh pr create` summarising the case, the decision (draft),
-               and the verifier output. Do NOT merge into main and do NOT push to main.
-            6. One candidate per run. Never promote a status without a verifier you ran.
-            # To make it fully hands-off, add `--squash --auto` to your gh pr create
-            # (or enable repo auto-merge) so a green PR merges itself.
+               and the verifier output. Do NOT push directly to main.
+            6. After creating the PR, run `gh pr merge --auto --squash` on it so
+               the green PR merges itself (repo auto-merge is enabled).
+            7. One candidate per run. Never promote a status without a verifier you ran.
