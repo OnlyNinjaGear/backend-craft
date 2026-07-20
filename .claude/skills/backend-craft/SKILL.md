@@ -9,9 +9,9 @@ Backend safety skill for building, retrofitting, and hardening services. This
 skill is not a style guide. It is a workflow for preventing common production
 failures.
 
-Source and updates: https://github.com/OnlyNinjaGear/backend-craft — current
-version in `.claude-plugin/plugin.json` next to this file (plugin installs)
-or in the repo's `v*` git tags. To update: `/plugin marketplace update
+Source and updates: https://github.com/OnlyNinjaGear/backend-craft — the
+version is the marketplace repo's git commit (no pinned version field), so
+every merged change is a new release. To update: `/plugin marketplace update
 backend-craft-marketplace` (plugin install), or `git pull` + re-copy
 `.claude/skills/backend-craft/` over this folder (manual/raw install).
 
@@ -60,6 +60,7 @@ Read:
 - `references/observability-ops.md`
 - `references/testing-verification.md`
 - `references/language-adapters.md`
+- `references/failure-cards.md`
 
 ### Retrofit mode
 
@@ -122,6 +123,10 @@ matching mid-task (e.g. a SQL fix discovered while writing tests).
 | framework choice, dependency choice, library replacement, custom code vs library | `references/library-decisions.md` |
 | Python, Go, TypeScript/Node idioms or tool rules | `references/language-adapters.md` |
 | self-hosted or local model inference, model serving service, GPU arch/driver, CUDA wheels, Apple Silicon / MLX / Metal, Hugging Face download on a node, embedding/OCR/moderation performance, overlay network to an inference node | `references/self-hosted-inference.md` |
+
+Whichever reference you load, also scan `references/failure-cards.md` for
+cards matching the same signals: each card is one distilled real-world
+failure mode with a verifier, and cards trump general advice on conflict.
 
 ## Final proof contract
 

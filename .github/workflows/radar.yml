@@ -49,7 +49,11 @@ jobs:
             4. Run the reducer / `python -m pytest tests/cards/ -q`. If it is NOT
                green, do NOT open a PR — comment the blocker on the issue and stop.
             5. If green: create branch case-triage/<date-and-issue>, commit the card,
-               reducer and a docs/EVIDENCE_LOG.md draft entry, then open a Pull
+               reducer and a docs/EVIDENCE_LOG.md draft entry. In the SAME commit,
+               sync the plugin copy of the cards:
+               `cp FAILURE_CARDS.md .claude/skills/backend-craft/references/failure-cards.md`
+               (that copy is what plugin users actually receive — a card that is
+               only in the root file is invisible to them). Then open a Pull
                Request with `gh pr create` summarising the case, the decision (draft),
                and the verifier output. Do NOT push directly to main.
             6. After creating the PR, run `gh pr merge --auto --squash` on it so
