@@ -29,6 +29,80 @@ Status: observed | production-tested | retired
 
 ## Entries
 
+## 2026-07-20 - drf-default-throttle-unset-card-added
+
+Context: daily case-triage run over the intake queue. Open `case`/
+`needs-triage` issue at run time: #7 only -- issues #2, #3, #4, #5, and #6
+were all already triaged and merged in prior runs
+(`auth-cross-layer-prefix-exemption-gap`, `drf-authn-expansion-widens-authz`,
+`drf-default-permission-unset`, `drf-authenticator-raises-instead-of-none`,
+`drf-permission-flag-nulled-for-post-read`). Picked issue #7 as the single
+remaining candidate: no `DEFAULT_THROTTLE_CLASSES` is configured, so the
+token/login endpoint accepts unlimited requests -- credential brute force
+plus, in a project with a per-request-DB-lookup authenticator, unrestricted
+resource consumption. Issue #7's own "Best target artifact" field suggested
+a checker, but a global-config-only check would miss the more interesting
+half of the mechanism (a project that *does* set a generic project-wide
+throttle scope but never gives the login endpoint its own), so this run
+produced a card + fixture-tested reducer, matching the sibling DRF cards'
+artifact shape and this project's admission bar (card + verifier, not a
+claim alone). No overlap with any existing card: none of the corpus covers
+throttling/rate limiting. Django 6.0.7 and djangorestframework 3.17.1 are
+installed in this environment, so the reducer runs the real
+`SimpleRateThrottle`/`ScopedRateThrottle`/`AnonRateThrottle` machinery
+instead of a mock.
+Artifact: `../FAILURE_CARDS.md` (new card `drf-default-throttle-unset`),
+`tests/cards/drf_default_throttle_unset.py` (new reducer),
+`tests/cards/test_drf_default_throttle_unset.py` (new verifier).
+Expected: repeated requests to the token/login endpoint from one caller
+identity should be capped by a rate scoped to that endpoint, independent of
+throttle budget consumed by unrelated routes.
+Why the agent likely failed: DRF's own built-in default for
+`DEFAULT_THROTTLE_CLASSES` is `[]` -- confirmed against the installed
+`rest_framework.settings.DEFAULTS` -- so a project that configures
+authentication and permissions but never throttling ships an unmetered
+login endpoint with nothing erroring. The subtler half: even a project that
+adds a generic `AnonRateThrottle` project-wide shares one cache key
+(`throttle_anon_<ip>`) across every anonymous route, so the login endpoint's
+guess budget and an unrelated read endpoint's browsing budget are the same
+bucket -- three unrelated GETs against a sibling endpoint can burn the
+budget an attacker's first three login attempts would otherwise have used,
+and neither traffic class gets a rate actually sized to what it is. The
+reducer proves this with three variants in one process family, run each in
+its own subprocess (Django settings configure once per process): `unset`
+(ten rapid login POSTs, all 200), `shared` (three unrelated GETs then three
+login POSTs from the same IP -- the third login attempt already 429s),
+`dedicated` (the login view gets its own `ScopedRateThrottle` scope --
+exhausting a sibling scope via five GETs does not touch the login budget,
+and the login scope enforces its own independent cap).
+Failure card: `drf-default-throttle-unset` (new, `draft` -- source-backed
+against the DRF throttling docs and fixture-tested against real Django/DRF,
+not yet observed on a second independent project or forward-tested).
+Rule/reference changed: none (config-plus-scoping gap, not a mechanical
+pattern suited to a Semgrep rule at this scope -- absence of a setting and
+absence of a per-view attribute are both non-signals for a syntax-only
+checker).
+Checker/test added: `tests/cards/drf_default_throttle_unset.py` +
+`tests/cards/test_drf_default_throttle_unset.py`. Three requests-sequence
+assertions against the same two views (`ListView`, `LoginView`) and the
+same anonymous IP, varying only the `REST_FRAMEWORK` throttle config: (1)
+`unset` -- `[200]*10` on the login endpoint; (2) `shared` -- reads
+`[200,200,200]`, then login `[200,200,429]`, proving the shared bucket
+conflates the two traffic classes; (3) `dedicated` -- reads
+`[200,200,200,200,200]` (scope exhausted), login still
+`[200,200,200,429]` unaffected, proving scope independence.
+```
+$ python -m pytest tests/cards/test_drf_default_throttle_unset.py -q
+3 passed
+
+$ python -m pytest tests/cards/ -q
+23 passed, 1 skipped (pre-existing PostgreSQL card, no reachable DB in this environment)
+
+$ python scripts/validate_repo.py
+validate_repo: ok
+```
+Status: draft
+
 ## 2026-07-20 - auth-cross-layer-prefix-exemption-gap-card-added
 
 Context: daily case-triage run over the intake queue. Open `case`/
