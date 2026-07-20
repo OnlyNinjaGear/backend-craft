@@ -152,6 +152,21 @@ or war stories, never as the rule authority.
 | typescript-eslint no-floating-promises: https://typescript-eslint.io/rules/no-floating-promises/ | unhandled promise checks | checker bridge |
 | typescript-eslint no-explicit-any: https://typescript-eslint.io/rules/no-explicit-any/ | type escape hatch checks | checker bridge |
 
+## Self-hosted inference and fleet operations
+
+| Source | Use for | Distill into |
+|---|---|---|
+| huggingface_hub environment variables: https://huggingface.co/docs/huggingface_hub/package_reference/environment_variables | `HF_HUB_DISABLE_IMPLICIT_TOKEN` and other download env toggles | `inference-hf-implicit-token-401` card |
+| NVIDIA CUDA GPUs (compute capability table): https://developer.nvidia.com/cuda-gpus | GPU arch inventory before serving-stack choice | `inference-gpu-arch-wheel-mismatch` card |
+| PyTorch Get Started install matrix: https://pytorch.org/get-started/locally/ | wheel CUDA and Python version compatibility | GPU arch and node-python cards |
+| systemctl(1): https://www.freedesktop.org/software/systemd/man/latest/systemctl.html | enable/start/restart semantics for redeploys | `infra-enable-now-not-a-restart` card |
+| launchctl(1), launchd.plist(5) man pages (macOS; no canonical web URL) | bootstrap/bootout/kickstart, `RunAtLoad` | launchd lifecycle cards |
+| MLX docs: https://ml-explore.github.io/mlx/build/html/index.html | streams and Metal execution model | `inference-mlx-not-thread-safe` card |
+| FastAPI Concurrency and async/await: https://fastapi.tiangolo.com/async/ | sync endpoints run in an external threadpool | `inference-mlx-not-thread-safe` card |
+| RFC 2397 The "data" URL scheme: https://www.rfc-editor.org/rfc/rfc2397 | inline media transport over one-way networks | `infra-one-way-overlay-inline-media` card |
+| PostgreSQL binary data types: https://www.postgresql.org/docs/current/datatype-binary.html | bytea semantics | `pg-bytea-key-without-length-check` card |
+| PostgreSQL constraints: https://www.postgresql.org/docs/current/ddl-constraints.html | CHECK constraints as loud failure for silent type confusion | `pg-bytea-key-without-length-check` card |
+
 ## Static analysis and dependency checking
 
 | Source | Use for | Distill into |

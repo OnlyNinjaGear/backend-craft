@@ -13,7 +13,7 @@ Production-risk скилл для Claude Code и Codex.
 API-контракты, права, tenant boundaries, миграции, повторы, таймауты,
 идемпотентность и фоновые задачи до того, как проблема уйдет в production.
 
-**41 failure pattern · 16 Semgrep rules · 3 runnable fixtures · 16 planted flaws**
+**51 failure pattern · 16 Semgrep rules · 3 runnable fixtures · 16 planted flaws**
 
 [Установка](#установка) · [Поддерживаемые стеки](#поддерживаемые-стеки) ·
 [Как это работает](#как-это-работает) · [Готовность проекта](docs/STATUS.md)
@@ -123,8 +123,8 @@ PostToolUse hook подключаются отдельно.
 
 | Артефакт | Текущее состояние |
 |---|---:|
-| Failure cards | 41 |
-| Карточки со статусом `production-tested` | 15 |
+| Failure cards | 51 |
+| Карточки со статусом `production-tested` | 17 |
 | Semgrep rules | 16 |
 | Rules со статусом `production-tested` | 2 |
 | Rules со статусом `fixture-tested` | 11 |

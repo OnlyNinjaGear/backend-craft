@@ -29,6 +29,159 @@ Status: observed | production-tested | retired
 
 ## Entries
 
+## 2026-07-19 - inference-node-readiness-assumptions
+
+Context: wiring a Go backend to self-hosted inference services (embedding,
+OCR, moderation, VLM) on a heterogeneous fleet — two Apple Silicon nodes, one
+Linux node with a Pascal-class GPU — reached over an overlay network. Owner
+requested this scope extension (session 2026-07-19). Three independent "the
+node is not what the plan assumed" failures during first deploys.
+Artifact: node deploy scripts and service env files (project-private;
+distilled into the cards and `references/self-hosted-inference.md`).
+Expected: public model weights download anonymously; the default torch wheel
+uses the node's GPU; the node's default `python3` can build the service venv.
+Why the agent likely failed:
+- a stale `~/.cache/huggingface/token` from another project was sent
+  implicitly; the Hub 401s a PUBLIC repo while `curl` gets 200 — the error
+  reads as "repo does not exist" and points away from the real cause;
+- default PyPI torch is built for sm_75+ and a newer CUDA runtime than the
+  node's driver; `torch.cuda.is_available()` is False and the "GPU node"
+  silently serves on CPU;
+- node `python3` was 3.14 (no ML wheels yet), and non-login SSH hides
+  `/opt/homebrew/bin` from PATH, so `which python3.12` claimed a working
+  interpreter did not exist.
+Failure card: `inference-hf-implicit-token-401` (new),
+`inference-gpu-arch-wheel-mismatch` (new),
+`infra-node-python-too-new-for-wheels` (new) — all observed.
+Rule/reference changed: new reference pack
+`references/self-hosted-inference.md` (hardware inventory before stack
+choice; download env hygiene; absolute interpreter path as a deploy
+parameter); SKILL.md routing row for self-hosted inference signals.
+Checker/test added: none mechanical; verifiers are the pre-deploy probe
+commands recorded in each card.
+Status: observed
+
+## 2026-07-19 - redeploy-served-stale-process
+
+Context: same fleet. A redeploy rsynced new code and env to an inference
+node; the service kept answering with old behavior (stale app code, stale
+`cuda` device setting). Separately, `launchctl bootstrap` failed with
+"Bootstrap failed: 5: Input/output error" during redeploys on two macOS
+nodes.
+Artifact: deploy scripts (rsync + `systemctl --user enable --now`); launchd
+plists and load sequence.
+Expected: a deploy replaces the running process; bootstrap loads the agent.
+Why the agent likely failed: `enable --now` starts a unit only if it is not
+already running — it never restarts one, and launchd `RunAtLoad` behaves the
+same, so the deploy log says success while the old process serves. The
+bootstrap error looks like a broken plist but is a label caught in a
+transitional state.
+Failure card: `infra-enable-now-not-a-restart` (new, observed),
+`infra-launchd-bootstrap-io-error` (new, observed — seen on two nodes).
+Rule/reference changed: `references/self-hosted-inference.md` — a deploy
+ends with an explicit restart plus a version-marker health probe; documented
+bootout -> sleep -> bootstrap -> kickstart sequence.
+Checker/test added: none mechanical; verifier is the post-deploy version
+marker check.
+Status: observed
+
+## 2026-07-19 - encoder-rerun-per-prompt-set
+
+Context: SigLIP zero-shot moderation service on CPU. Each request ran the
+image encoder once per prompt ladder (4x) and re-encoded constant prompt
+texts every request: 11.4 s per image.
+Artifact: moderation service inference path (project-private; reduced to the
+card's Detect/Safe pattern).
+Expected: one image-encoder forward per request; constant prompt embeddings
+computed once per process.
+Why the agent likely failed: wrote the scoring loop as "for each prompt set:
+encode and compare", which reads naturally and never errors; it is only
+5-10x slower than encoding once.
+Failure card: `inference-encoder-in-prompt-loop` (new, production-tested:
+before/after measured with curl on the live service — 11.4 s -> 1.3-1.8 s
+warm after encoding the image once and caching text features in
+`lru_cache`).
+Rule/reference changed: `references/self-hosted-inference.md` — "Encode
+once; cache constant embeddings".
+Checker/test added: none mechanical; verifier is the before/after latency
+measurement plus grep for encoder calls inside prompt-set loops.
+Status: production-tested
+
+## 2026-07-19 - colocated-cpu-services-retry-collapse
+
+Context: OCR and moderation, both CPU-bound, on one node; queue worker with
+concurrency 8 and a 60 s client timeout feeding both.
+Artifact: worker pipeline configuration and service logs (project-private).
+Expected: bulk ingest completes; the best-effort OCR stage populates its
+field.
+Why the agent likely failed: sized worker concurrency to the fast path and
+assumed colocation was free. Under load the two services contended for the
+same cores, moderation crossed the client timeout, the queue retried, and
+retries added load: 2/1500 items processed in 100 minutes. The best-effort
+OCR stage skipped silently — coverage 1/1500 rows with zero errors logged.
+Failure card: `infra-colocated-cpu-services-retry-storm` (new, observed).
+Rule/reference changed: `references/self-hosted-inference.md` — spread
+CPU-bound services; server-side max-concurrency semaphore per service;
+worker concurrency sized from the slowest shared resource; skip rate counted
+for every best-effort stage.
+Checker/test added: none mechanical; verifiers are the load run (throughput
+vs concurrency) and the per-stage coverage metric.
+Status: observed
+
+## 2026-07-19 - mlx-generate-not-thread-safe
+
+Context: mlx-vlm captioning service behind sync FastAPI endpoints on an
+Apple Silicon node.
+Artifact: service endpoint code (project-private; pattern captured in the
+card).
+Expected: concurrent requests queue up and all succeed.
+Why the agent likely failed: FastAPI runs sync endpoints in a threadpool and
+MLX Metal streams are thread-local; at concurrency 2, 3 of 4 requests failed
+with "There is no Stream(gpu, N) in current thread".
+Failure card: `inference-mlx-not-thread-safe` (new, observed).
+Rule/reference changed: `references/self-hosted-inference.md` — serialize
+generate with a process-wide lock; smoke test at concurrency >= 2 before a
+service counts as deployed.
+Checker/test added: none mechanical; verifier is the parallel smoke test.
+Status: observed
+
+## 2026-07-19 - one-way-overlay-broke-url-transport
+
+Context: same fleet. The app host serves media over its own HTTP; inference
+services accepted media only as an `http(s)` URL or a local path.
+Artifact: node-side fetch probe (curl exit 000, empty access log on the app
+host) and service input loaders.
+Expected: the node downloads media from the app host the same way the app
+host reaches the node.
+Why the agent likely failed: assumed reachability is symmetric because
+app-host-to-node calls worked; the overlay had no reverse route/identity, so
+the first real media request failed after a green deploy.
+Failure card: `infra-one-way-overlay-inline-media` (new, observed).
+Rule/reference changed: `references/self-hosted-inference.md` — every
+inference service accepts `data:` URIs; reverse-fetch probe before choosing
+URL transport.
+Checker/test added: none mechanical; verifier is the live data-URI call plus
+the node-to-app-host curl probe.
+Status: observed
+
+## 2026-07-19 - bytea-dedupe-key-silent-miss
+
+Context: Go/pgx write path of the same project. BYTEA sha256 column with a
+UNIQUE constraint used as the content dedupe key.
+Artifact: live database check (reduced to the card's verifier).
+Expected: `UNIQUE(sha256)` rejects duplicate content.
+Why the agent likely failed: passed the hex string instead of the raw
+`[]byte`; the driver encoded 64 ASCII bytes instead of the 32 digest bytes,
+so UNIQUE kept "working" against values that never match — dedupe silently
+stopped, with no error anywhere.
+Failure card: `pg-bytea-key-without-length-check` (new, production-tested:
+`CHECK (octet_length(sha256) = 32)` added and live-verified in both
+directions — hex-text insert rejected, 32-byte insert accepted).
+Rule/reference changed: none beyond the card; the rule is card-level.
+Checker/test added: none mechanical; verifier is the pair of live inserts
+against the CHECK.
+Status: production-tested
+
 ## 2026-07-19 - drf-default-permission-unset-card-added
 
 Context: daily case-triage run over the intake queue (issues #2-#7, all

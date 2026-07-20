@@ -541,3 +541,123 @@ Safe pattern: make the claim atomic. Any of these is correct:
 Verifier: `tests/cards/pg_non_atomic_claim.py` + `tests/cards/test_pg_non_atomic_claim.py` (needs a reachable PostgreSQL) prove four facts: non-atomic SELECT-then-UPDATE hands the same row to two workers; `FOR UPDATE SKIP LOCKED` gives each row to exactly one worker without blocking; conditional `UPDATE ... RETURNING` claims exactly once under concurrent writers; and an atomically-claimed job is still delivered twice after a crash + requeue. Run: `PGHOST=... PGDATABASE=... uv run --with psycopg2-binary python tests/cards/pg_non_atomic_claim.py` and the same env with `--with pytest python -m pytest tests/cards/test_pg_non_atomic_claim.py -q`.
 Escape hatch: a single-worker consumer, or a real broker (SQS/RabbitMQ/Redis Streams) that already provides the claim — the card is about hand-rolled SQL-table queues.
 Sources: PostgreSQL SELECT reference — `FOR UPDATE ... SKIP LOCKED` (https://www.postgresql.org/docs/current/sql-select.html); PostgreSQL explicit locking (https://www.postgresql.org/docs/current/explicit-locking.html).
+
+## pg-bytea-key-without-length-check
+
+Status: production-tested (live DB check 2026-07-19: hex-text insert rejected by the CHECK, 32-byte insert accepted)
+Triggered by: BYTEA column used as a dedupe/unique key (sha256 or another fixed-length digest), written from Go/pgx or any driver that encodes both strings and byte slices.
+Model failure: passes the hex STRING instead of the raw `[]byte` digest. The driver happily encodes the 64 ASCII hex characters as a 64-byte value; `UNIQUE(sha256)` still "works" but 64-byte values never collide with 32-byte ones, so deduplication silently stops. Nothing errors.
+Blast radius: duplicates accumulate in a table whose whole point is dedupe; every consumer downstream sees repeated items; the defect is invisible until someone measures.
+Detect: `SELECT octet_length(<key>), count(*) FROM <table> GROUP BY 1` shows mixed lengths (32 and 64); dedupe hit-rate drops to ~0 after a code change on the write path.
+Safe pattern: `CHECK (octet_length(sha256) = 32)` on the column. It converts the silent type confusion into a loud insert error at the first wrong write. Keep passing raw bytes from the app, but do not rely on that alone.
+Verifier: `INSERT` with a hex string cast through text must fail the CHECK; `INSERT` with a real 32-byte value must pass. Both directions live-verified 2026-07-19.
+Escape hatch: columns that legitimately store variable-length blobs — the CHECK is for fixed-length digest keys only.
+Sources: PostgreSQL docs — Binary Data Types (bytea); PostgreSQL docs — Constraints (CHECK constraints).
+
+## inference-gpu-arch-wheel-mismatch
+
+Status: observed (Pascal-class GPU node, 2026-07-19)
+Triggered by: choosing a serving stack for a GPU node; installing default PyPI `torch` on an older NVIDIA card.
+Model failure: assumes "GPU node" means the default torch wheel will use the GPU. Modern default wheels (e.g. `torch 2.x +cu13x`) are built for sm_75+ and need a CUDA runtime newer than the node's driver supports. On a Pascal card (Tesla P100 = sm_60, CUDA-12.8-era driver) `torch.cuda.is_available()` returns False and the service silently runs on CPU. AWQ/int4 kernels also require sm_75+.
+Blast radius: capacity plan built around a GPU that is effectively a CPU node; latency budgets miss; time burned on quantization stacks that can never run on this hardware.
+Detect: `torch.cuda.is_available()` is False on a node where `nvidia-smi` works; the card's compute capability is absent from `torch.cuda.get_arch_list()`.
+Safe pattern: inventory before stack choice — `nvidia-smi` for arch and driver version. Install a wheel built for that arch AND compatible with the driver's CUDA, or explicitly configure the service for CPU and size capacity accordingly. A GPU node that can only run CPU is a CPU node.
+Verifier: pre-deploy on the target node: `python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_arch_list())"`.
+Escape hatch: intentional CPU fallback, stated in the service config and the capacity plan.
+Sources: NVIDIA CUDA GPUs compute capability table; PyTorch release notes (supported architectures and CUDA per wheel); CUDA Toolkit release notes (driver compatibility).
+
+## inference-hf-implicit-token-401
+
+Status: observed (shared inference node, 2026-07-19; the same env fix pre-applied on two more nodes)
+Triggered by: downloading model weights on a shared node via huggingface_hub (`snapshot_download`, `from_pretrained`, first service start).
+Model failure: debugs a 401 `RepositoryNotFoundError` on a PUBLIC model as "wrong repo id" or "model gated". Real cause: a stale `~/.cache/huggingface/token` left by another project; huggingface_hub sends it implicitly, and the Hub returns 401 even for public repos. `curl` without a token fetches the same file with 200.
+Blast radius: deploys blocked on any shared node with a leftover token; hours lost chasing a nonexistent repo problem; deleting the token file breaks the other project.
+Detect: hub client 401s a repo that `curl -sI <hub file URL>` answers with 200; `~/.cache/huggingface/token` exists and does not belong to this service.
+Safe pattern: set `HF_HUB_DISABLE_IMPLICIT_TOKEN=1` in the service environment and pass `token=False` to explicit downloads. Do not delete the token file — it is another project's credential.
+Verifier: `curl -sI` on a hub file URL returns 200 while the Python client 401s ⇒ implicit token is the cause; after the env fix the same multi-GB download completes anonymously.
+Escape hatch: services that need gated/private models get their own explicit token via env, never the shared cache file.
+Sources: huggingface_hub docs — Environment variables reference (`HF_HUB_DISABLE_IMPLICIT_TOKEN`); huggingface_hub docs — Authentication guide.
+
+## infra-node-python-too-new-for-wheels
+
+Status: observed (venv build failed on the node's default python3, 2026-07-19)
+Triggered by: building a service venv on a node whose default `python3` is very new (e.g. 3.14), then pip-installing ML packages.
+Model failure: uses whatever `python3` resolves to. The newest interpreter has no cpXX wheels yet for torch/ML stacks, so pip fails or tries to compile from source. Second trap on macOS: non-login SSH sessions do not have `/opt/homebrew/bin` on PATH, so `which python3.12` reports "not found" while the binary exists.
+Blast radius: deploy fails late, or the agent concludes the interpreter "is not installed" and installs a duplicate toolchain.
+Detect: pip "no matching distribution" errors for packages that ship wheels; `which` disagrees with `ls /opt/homebrew/bin`.
+Safe pattern: create venvs with an explicitly versioned interpreter by ABSOLUTE path (`/opt/homebrew/bin/python3.12 -m venv ...`); make the interpreter path a deploy-script parameter, not an assumption.
+Verifier: before deploy: `ssh node '<abs-python> -c "import sys; print(sys.version)"'` plus a pip dry-run of the requirement set on the node.
+Escape hatch: pure-stdlib services.
+Sources: PyTorch Get Started install matrix (supported Python versions); Python Packaging User Guide (binary wheels are built per interpreter tag).
+
+## infra-one-way-overlay-inline-media
+
+Status: observed (node-to-core fetch: curl exit 000, empty access log, 2026-07-19)
+Triggered by: inference service that accepts media only as an `http(s)` URL or a node-local path, with media hosted on the app host and nodes reached over an overlay network.
+Model failure: assumes reachability is symmetric because app-host-to-node calls work. Overlay networks are often one-directional (no reverse route or identity for node-to-core), so the node cannot fetch anything from the app host. The service deploys green, passes node-local tests, and fails on the first real request.
+Blast radius: the whole media pipeline is dead in production while every deploy check is green.
+Detect: node-side `curl <app-host URL>` fails (exit 000 / timeout) and the app host's access log stays empty, while app-host-to-node requests work; the service input loader handles only URL/path.
+Safe pattern: every inference service accepts `data:` URIs (base64) in the same field as URLs; the client inlines media. Probe the reverse direction before choosing URL transport.
+Verifier: live call from the app host with a data-URI payload returns 200; a node-to-app-host `curl` probe is part of pre-deploy checks.
+Escape hatch: fleets with verified bidirectional routing — keep URL transport, keep the reverse probe in deploy checks.
+Sources: RFC 2397 (the "data" URL scheme); the one-way route itself is observed overlay behavior, not documented.
+
+## inference-encoder-in-prompt-loop
+
+Status: production-tested (before/after latency measured on a live moderation service, 2026-07-19)
+Triggered by: zero-shot classification or scoring with several prompt/label sets over one input (CLIP/SigLIP-style), especially on CPU.
+Model failure: runs the input encoder once per prompt set and re-encodes constant prompt texts on every request. The loop "for each prompt ladder: encode and compare" reads naturally and errors never fire — it is only 5-10x slower. Measured: 4 image-encoder passes + per-request text encoding = 11.4 s/image on CPU; after the fix 1.3-1.8 s warm.
+Blast radius: latency blows the client timeout of every caller; on a queue-fed service this feeds a retry storm (see `infra-colocated-cpu-services-retry-storm`).
+Detect: encoder forward called inside a loop over prompt/label sets; text embeddings of constant prompts computed per request instead of per process.
+Safe pattern: encode the input once per request and reuse the features across all prompt ladders; cache constant text embeddings at process scope (`functools.lru_cache` or init-time precompute).
+Verifier: latency measured before/after on the same input (curl timing); grep for encoder calls inside per-prompt-set loops.
+Escape hatch: prompts that genuinely change per request (user queries) — cache only what is constant.
+Sources: measured behavior on a live service; Python functools docs (`lru_cache`).
+
+## infra-colocated-cpu-services-retry-storm
+
+Status: observed (two-service CPU node during bulk ingest, 2026-07-19)
+Triggered by: placing two CPU-bound inference services (e.g. OCR + moderation) on one node, fed by a queue worker with fixed concurrency and a client timeout.
+Model failure: sizes worker concurrency to the fastest service and assumes colocation is free. Under ingest the services contend for the same cores, response time crosses the client timeout, the queue retries, and retries add more load. Measured collapse: 2/1500 items in 100 minutes. The best-effort stage was skipped silently: coverage 1/1500 rows with zero errors logged.
+Blast radius: throughput collapse under exactly the load the pipeline was built for; silent data-quality loss in every skip-on-error stage — nobody notices without a metric.
+Detect: two CPU-heavy services on one node; client timeout + retry with no server-side concurrency cap; best-effort stage with no skip counter.
+Safe pattern: spread CPU-bound services across nodes. Give each service its own server-side semaphore (max-concurrency env) so it protects itself regardless of client behavior. Size worker concurrency from the slowest shared resource. Count and log the skip rate of every best-effort stage.
+Verifier: load run of N items — throughput does not degrade as worker concurrency rises; per-stage coverage metric is ~100% or the gap is explained.
+Escape hatch: colocation with measured headroom AND a server-side cap on each service.
+Sources: Google SRE — Addressing Cascading Failures; Azure Retry Storm antipattern.
+
+## infra-enable-now-not-a-restart
+
+Status: observed (redeploy served stale code and stale env, 2026-07-19)
+Triggered by: deploy script that rsyncs code/env and then runs `systemctl --user enable --now`, or relies on launchd `RunAtLoad`.
+Model failure: assumes `enable --now` (re)starts the unit. For an already-running unit it is a no-op: the old process keeps serving old code and the old environment — here a stale `cuda` device setting survived the fix that removed it. The deploy log says success; the behavior is stale.
+Blast radius: fixes never reach production while deploys report success; debugging targets new code that is not actually running.
+Detect: deploy script has no `restart`/`try-restart`/`kickstart -k` step; service behavior contradicts the just-synced code.
+Safe pattern: `systemctl --user restart <unit>` (or `try-restart`) after every sync; on launchd, `launchctl kickstart -k gui/$UID/<label>`. End the deploy with a version probe, not with the sync.
+Verifier: post-deploy, the service reports a version/build marker (e.g. a field in `/health`) matching what was just synced.
+Escape hatch: none for code deploys; `enable --now` alone is only sufficient on first install.
+Sources: systemctl(1) man page (enable/start semantics: start does nothing to a running unit); launchctl(1) man page (`kickstart -k`); launchd.plist(5) (`RunAtLoad`).
+
+## infra-launchd-bootstrap-io-error
+
+Status: observed (twice, on two different macOS nodes, 2026-07-19)
+Triggered by: `launchctl bootstrap gui/$UID <plist>` during redeploy of a LaunchAgent.
+Model failure: treats "Bootstrap failed: 5: Input/output error" as a broken plist and starts rewriting a working file. The label is in a transitional state after a previous load/unload; the plist is fine.
+Blast radius: deploy loops on a red herring; agents "fix" valid plists and can corrupt a working service definition.
+Detect: bootstrap fails with error 5 right after a bootout or a previously failed load, while `plutil -lint` says the plist is valid.
+Safe pattern: deterministic sequence: `launchctl bootout gui/$UID/<label>` (ignore "No such process"), `sleep 3`, `launchctl bootstrap gui/$UID <plist>`, `launchctl enable`, `launchctl kickstart -k`. Manage only your own labels; never touch co-tenant processes.
+Verifier: after the sequence, `launchctl print gui/$UID/<label>` shows the service running and the health endpoint answers.
+Escape hatch: none needed; the sequence is idempotent.
+Sources: launchctl(1) man page (bootstrap/bootout/kickstart subcommands); the transitional-state error itself is observed behavior, not documented.
+
+## inference-mlx-not-thread-safe
+
+Status: observed (concurrent smoke test, 3 of 4 requests failed, 2026-07-19)
+Triggered by: serving mlx / mlx-vlm generation behind sync FastAPI (or any framework that runs sync handlers in a threadpool).
+Model failure: assumes the inference call is thread-safe like most service code. MLX Metal streams are thread-local: under concurrency 2 requests fail with "There is no Stream(gpu, N) in current thread". The service passes every single-request smoke test.
+Blast radius: hard failures under any real concurrency, discovered in production traffic instead of deploy checks.
+Detect: mlx generate/encode called from framework-managed threads without serialization; errors naming a missing GPU stream in the current thread.
+Safe pattern: wrap generation in a `threading.Lock` — one GPU generates one sequence at a time anyway, so the lock only makes the queueing explicit. Alternative: one dedicated inference thread with a queue.
+Verifier: parallel smoke test at concurrency >= 2: all responses 200.
+Escape hatch: none for threadpool servers; async single-worker designs that never touch mlx from two threads.
+Sources: MLX documentation (streams / unified memory execution model); FastAPI docs — sync `def` endpoints run in an external threadpool.

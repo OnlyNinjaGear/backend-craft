@@ -1,6 +1,6 @@
 # Готовность backend-craft
 
-Обновлено: 2026-07-11. Текущий канал: **post-v0.1 `main`, team pilot**.
+Обновлено: 2026-07-19. Текущий канал: **post-v0.1 `main`, team pilot**.
 
 Последний неизменяемый тег `v0.1` не содержит последующие cards/rules и
 implementation-evidence contract. Для пилота используется `main`. Старый тег не
@@ -54,6 +54,7 @@ failure cards и Semgrep rules.
 | Library choice | `VALIDATED` | `library-decisions.md`, forward test 013 |
 | Existing-code fit | `VALIDATED` | `codebase-fit.md`, forward tests 002 и 014 |
 | Stack selection | `VALIDATED` | `stack-recipes.md`, forward tests 001 и 101 |
+| Self-hosted inference ops | `OBSERVED` | `self-hosted-inference.md`, 9 cards из реальной fleet-сессии 2026-07-19; без dedicated fixture и forward tests |
 
 ## Технологии
 
@@ -79,9 +80,10 @@ fixture не доказывает интеграцию с Gin или Echo.
 
 | Артефакт | Состояние |
 |---|---:|
-| Reference packs | 10 |
-| Failure cards | 41 |
-| Cards со статусом `production-tested` | 15 |
+| Reference packs | 11 |
+| Failure cards | 51 |
+| Cards со статусом `production-tested` | 17 |
+| Cards со статусом `observed` | 8 |
 | Cards со статусом `draft` | 26 |
 | Semgrep rules | 16 |
 | Rules со статусом `production-tested` | 2 |
@@ -96,7 +98,7 @@ fixture не доказывает интеграцию с Gin или Echo.
 
 ## Что завершено в текущем snapshot
 
-- [x] Installable router skill и 10 routed reference packs.
+- [x] Installable router skill и 11 routed reference packs.
 - [x] Start, Retrofit, Harden и Continue прошли blind forward tests.
 - [x] Python/FastAPI, Go/`net/http` и TypeScript/Fastify имеют runnable fixtures.
 - [x] Semgrep baseline фиксирован на 11 findings и проверяется в CI.
