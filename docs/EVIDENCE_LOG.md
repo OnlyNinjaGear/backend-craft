@@ -29,6 +29,61 @@ Status: observed | production-tested | retired
 
 ## Entries
 
+## 2026-07-20 - infra-shared-append-log-merge-conflict-card-added
+
+Context: daily case-triage run over the intake queue. Open `case`/
+`needs-triage` issues at run time: #15 and #16, both filed against this
+project's own case-triage pipeline rather than against a consumer backend.
+Picked #16 (append-only shared log turns concurrent PRs into guaranteed merge
+conflicts, auto-merge stalls silently) over #15 (workflow-level
+`pull-requests: write` insufficient without a repo-level toggle, run stays
+green while PR creation silently fails): #16's own verifier idea reduces to
+pure local git operations with no GitHub API, network, or auth dependency, so
+it is fully hermetic and deterministic in CI; #15's verifier would need to
+mock `gh api repos/.../actions/permissions/workflow` and a real preflight
+step, which is closer to a playbook/checker item than a reducer-provable
+card. No overlap with any existing card: the corpus's `infra-*` cards cover
+deploy/process-management ops, none cover git merge semantics or multi-branch
+automation pipelines. This project's own `EVIDENCE_LOG.md` is itself an
+instance of the exact pattern described (every case-triage PR appends to its
+tail), so the card generalizes the pipeline's own operating risk, not just
+the reporting issue's scenario.
+Artifact: `../FAILURE_CARDS.md` (new card
+`infra-shared-append-log-merge-conflict`),
+`tests/cards/infra_shared_append_log_merge_conflict.py` (new reducer),
+`tests/cards/test_infra_shared_append_log_merge_conflict.py` (new verifier).
+Expected: two branches that each append a distinct entry to the tail of the
+same shared file should both land in the file after both merge, without a
+human needing to hand-resolve a conflict.
+Why the agent likely failed: appending to a shared log looks like a purely
+additive change with no risk of collision, so nothing in the pipeline design
+anticipates that git's line-based merge driver treats "both branches touched
+the file's final lines" as a real conflict regardless of semantic intent, and
+that GitHub auto-merge has no fallback for it -- the PR just sits open with
+no alert. The reducer proves three things directly against the installed
+git: (1) with the default driver, the first branch's append merges cleanly
+and the second branch's append against the same tail is a genuine conflict
+(`git merge` exits non-zero, working tree shows `UU`); (2) marking the file
+`merge=union` in `.gitattributes` from the start makes both merges clean and
+keeps both blocks, using git's built-in union low-level driver (no custom
+driver script needed, verified against the installed git); (3) switching to
+one file per entry under `entries/` makes both merges clean because the
+branches never touch the same path.
+Failure card: `infra-shared-append-log-merge-conflict` (new, `observed` --
+matches this pipeline's own real incident from 2026-07-19 referenced in the
+issue, plus the reducer proves the mechanism directly against the installed
+git rather than relying on the issue's description alone).
+Rule/reference changed: none (git merge-conflict structure is not a
+mechanical single-file pattern a Semgrep/ast-grep rule can usefully flag;
+the safe pattern is a repo-configuration choice, not a code-level anti-pattern).
+Checker/test added: `tests/cards/test_infra_shared_append_log_merge_conflict.py`,
+3/3 passing (see PR verifier output).
+Sources verified: gitattributes(5) `merge` attribute semantics and the
+built-in `union` driver, confirmed directly by running the reducer against
+the git binary installed in this environment (not taken from documentation
+alone).
+Status: observed
+
 ## 2026-07-20 - drf-default-throttle-unset-card-added
 
 Context: daily case-triage run over the intake queue. Open `case`/
