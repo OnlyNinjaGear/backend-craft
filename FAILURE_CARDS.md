@@ -710,6 +710,18 @@ Verifier: after the sequence, `launchctl print gui/$UID/<label>` shows the servi
 Escape hatch: none needed; the sequence is idempotent.
 Sources: launchctl(1) man page (bootstrap/bootout/kickstart subcommands); the transitional-state error itself is observed behavior, not documented.
 
+## infra-shared-append-log-merge-conflict
+
+Status: observed (this pipeline's own PR queue, 2026-07-19)
+Triggered by: a multi-branch pipeline (agent or human) where every branch appends an entry to the tail of the same tracked file -- a changelog, evidence log, or registry.
+Model failure: treats "append to the log" as a safe, additive operation because each individual diff is non-overlapping in intent. Git's default line-based merge driver only sees that two branches both touched the final lines of the same file and calls it a conflict, even though the correct resolution is always "keep both blocks". Auto-merge tooling has no conflict-resolution logic, so it silently declines to merge and gives no actionable signal -- the PR just sits open until a human hand-resolves a "conflict" that was never semantically one.
+Blast radius: every PR opened before the previous one merges into the same file is guaranteed `CONFLICTING`; queue depth compounds (PR3 conflicts with PR2 which conflicts with PR1); auto-merge stalls silently with no exit code or alert, so an unattended pipeline looks idle rather than broken.
+Detect: two or more open branches append to the tail of the same tracked file; the repo has no merge driver configured for that path; auto-merge is enabled but PRs accumulate with `mergeable: CONFLICTING` / `mergeStateStatus: DIRTY`.
+Safe pattern: either (a) mark the append-only file `merge=union` in `.gitattributes` (e.g. `EVIDENCE_LOG.md merge=union`) so concurrent tail-appends merge automatically, keeping both blocks -- git's built-in union low-level driver needs no extra `[merge "union"]` config; or (b) switch to a one-file-per-entry layout (`entries/<date>-<slug>.md`) so concurrent branches touch disjoint paths and never collide. Prefer (b) when entries need independent review or revert; (a) is a fast retrofit for an existing single-file log.
+Verifier: reducer branches twice from one commit, appends a distinct block to the tail of the same file on each branch, merges one, then merges the other -- asserts a real conflict with the default driver, then asserts a clean merge with both blocks kept once `.gitattributes` sets `merge=union`, and asserts a clean merge under the per-entry-file layout. `tests/cards/infra_shared_append_log_merge_conflict.py` + `tests/cards/test_infra_shared_append_log_merge_conflict.py`.
+Escape hatch: union merge has no semantic check -- it happily keeps two branches that each "resolve" the same underlying case differently, silently accepting a contradiction instead of flagging it. For content where order or mutual exclusivity matters, prefer the per-entry-file layout so an actual duplicate/contradiction still surfaces as a normal path-level review question instead of being merged away.
+Sources: gitattributes(5) `merge` attribute and the built-in `union` low-level merge driver (documented behavior, verified directly against the installed git in this repo).
+
 ## inference-mlx-not-thread-safe
 
 Status: observed (concurrent smoke test, 3 of 4 requests failed, 2026-07-19)
