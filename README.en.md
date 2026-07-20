@@ -122,12 +122,12 @@ are installed separately.
 
 ## Why Trust It
 
-The current snapshot contains 51 failure cards, including 17
+The current snapshot contains 52 failure cards, including 17
 `production-tested` cards, and 16 Semgrep rules.
 
 | Artifact | Current state |
 |---|---:|
-| Failure cards | 51 |
+| Failure cards | 52 |
 | Semgrep rules | 16 |
 | Rules: `production-tested` | 2 |
 | Rules: `fixture-tested` | 11 |

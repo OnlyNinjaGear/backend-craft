@@ -649,3 +649,15 @@ Safe pattern: wrap generation in a `threading.Lock` — one GPU generates one se
 Verifier: parallel smoke test at concurrency >= 2: all responses 200.
 Escape hatch: none for threadpool servers; async single-worker designs that never touch mlx from two threads.
 Sources: MLX documentation (streams / unified memory execution model); FastAPI docs — sync `def` endpoints run in an external threadpool.
+
+## infra-guard-regex-admits-blocked-case
+
+Status: observed (this project: gate v1 `^3[.]1[0-9]$` shipped, caught by a follow-up harden review before it fired)
+Triggered by: writing a validation gate (allowlist regex or range) that must block a dangerous input class before a destructive action (`rm -rf`, delete, overwrite, deploy).
+Model failure: the guard's accepted set is a superset of the intended-safe set, so it admits the very case it was written to exclude. Example: a gate meant to force Python 3.10-3.12 was written `^3[.]1[0-9]$`, which also admits 3.13-3.19 — including the node-default 3.14 that has no ML wheels. A forgotten `PYTHON=` override then passes the gate, and the next line `rm -rf`s a working 3.12 venv and rebuilds on 3.14, downing a live service. The guard blocked only 3.9, never the 3.14 that actually bites.
+Blast radius: the destructive op the guard was protecting fires on the exact input it was supposed to stop; on a sole-live node this is an outage, and the safe prior state (the good venv) is already gone.
+Detect: a validation regex/range guarding a destructive op where the accepted set is wider than the intended-safe set, and the specific dangerous value falls inside the accepted set.
+Safe pattern: pin the allowlist to the EXACT safe set (`^3[.]1[0-2]$`), not a convenient superset. Write the guard's verifier as a truth table that includes the dangerous value and asserts it is REJECTED — not just that a good value is accepted.
+Verifier: a table test enumerating boundary + dangerous values (e.g. 3.9 / 3.12 / 3.13 / 3.14 / 3.20) asserting pass|block; the dangerous value MUST be block.
+Escape hatch: none — a guard that admits its target case is worse than no guard because it manufactures false confidence.
+Sources: observed behavior; regular-expression anchoring semantics.

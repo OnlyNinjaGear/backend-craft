@@ -81,7 +81,7 @@ fixture не доказывает интеграцию с Gin или Echo.
 | Артефакт | Состояние |
 |---|---:|
 | Reference packs | 11 |
-| Failure cards | 51 |
+| Failure cards | 52 |
 | Cards со статусом `production-tested` | 17 |
 | Cards со статусом `observed` | 8 |
 | Cards со статусом `draft` | 26 |
