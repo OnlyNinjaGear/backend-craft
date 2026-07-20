@@ -125,6 +125,18 @@ Verifier: route-table sweep test — enumerate all registered routes (Fastify `p
 Escape hatch: intentionally public routes (health, signed webhooks, docs) named in a public-route allowlist that the sweep test reads.
 Sources: Fastify Hooks + Encapsulation references (hooks encapsulated per plugin context; sibling isolation; fastify-plugin breaks encapsulation explicitly), FastAPI Bigger Applications tutorial (router-level dependencies scoped to that router only), OWASP Authorization Cheat Sheet (deny by default). Verified against fastify.dev and fastapi.tiangolo.com, 2026-07-10.
 
+## drf-default-permission-unset
+
+Status: draft
+Triggered by: a Django REST Framework project that sets `DEFAULT_AUTHENTICATION_CLASSES` in `REST_FRAMEWORK` (so requests do get a resolved `request.user`) but never sets `DEFAULT_PERMISSION_CLASSES`, plus any view/viewset that forgets its own `permission_classes`.
+Model failure: treats "authentication is configured" as "authorization is configured." DRF's actual built-in default for `DEFAULT_PERMISSION_CLASSES` is `AllowAny`, not deny-by-default. A view that forgets `permission_classes` is not merely unauthenticated-and-500 — it is silently public to anyone, authenticated or not, and nothing errors.
+Blast radius: any view added or copy-pasted without an explicit `permission_classes` line is world-readable/writable the moment it ships; the gap is invisible in code review because the view looks identical to a properly-guarded one minus one line.
+Detect: `REST_FRAMEWORK` config defines `DEFAULT_AUTHENTICATION_CLASSES` without also defining `DEFAULT_PERMISSION_CLASSES`; any `APIView`/`ViewSet` subclass with no `permission_classes` attribute and no `get_permissions` override.
+Safe pattern: set `DEFAULT_PERMISSION_CLASSES` to a non-`AllowAny` value (typically `IsAuthenticated`) project-wide, so a forgotten per-view line fails closed instead of open; treat any explicit `AllowAny` view as an exception that must be named and reviewed.
+Verifier: instantiate the DRF settings actually used by the project; assert `DEFAULT_PERMISSION_CLASSES` is set and does not resolve to `AllowAny`. Fixture-level: a view with no `permission_classes` hit via `APIRequestFactory`/test client with zero credentials must return 401/403, not 200.
+Escape hatch: a route intentionally public (health check, signed webhook receiver, public docs) with `permission_classes = [AllowAny]` stated explicitly on the view, not inherited from an unset default.
+Sources: DRF permissions docs, https://www.django-rest-framework.org/api-guide/permissions/ (documents `DEFAULT_PERMISSION_CLASSES` as a global `REST_FRAMEWORK` setting and `AllowAny` as its shipped default when unset — confirmed directly against the installed `djangorestframework` 3.17.1 source in this repo's environment, see reducer); OWASP Authorization Cheat Sheet (deny by default).
+
 ## tenant-filter-forgotten
 
 Status: production-tested (forward-test 003, 2026-07-10)

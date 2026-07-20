@@ -182,6 +182,45 @@ Checker/test added: none mechanical; verifier is the pair of live inserts
 against the CHECK.
 Status: production-tested
 
+## 2026-07-19 - drf-default-permission-unset-card-added
+
+Context: daily case-triage run over the intake queue (issues #2-#7, all
+Django/DRF authorization findings from one anonymized case source). Picked
+issue #4 as the single most promising candidate: it is the root-cause failure
+mode several of the sibling issues build on top of, it does not duplicate any
+existing card (`authz-handler-only` and `auth-middleware-scope-miss` are about
+encapsulation/scope, not the framework's own permission default), and Django +
+DRF are actually installed in this environment (Django 6.0.7,
+djangorestframework 3.17.1) so the reducer runs against the real library
+instead of a mock.
+Artifact: `../FAILURE_CARDS.md` (new card `drf-default-permission-unset`),
+`tests/cards/drf_permission_fail_open.py` (new reducer),
+`tests/cards/test_drf_permission_fail_open.py` (new verifier).
+Expected: a view with no `permission_classes` should deny an unauthenticated,
+zero-credential request.
+Why the agent likely failed: `REST_FRAMEWORK` sets
+`DEFAULT_AUTHENTICATION_CLASSES` (so it looks like auth is "handled") but
+never sets `DEFAULT_PERMISSION_CLASSES`; confirmed against the installed
+`rest_framework.settings.DEFAULTS` that DRF's own shipped default for that key
+is `AllowAny`. A view that forgets `permission_classes` is not a 500, it is
+silently public. Reducer runs the same `APIView` in two subprocesses (Django
+settings can only be configured once per process, and
+`APIView.permission_classes` binds to `api_settings.DEFAULT_PERMISSION_CLASSES`
+at `rest_framework.views` import time) -- one with the setting unset (200 to
+zero credentials), one with `DEFAULT_PERMISSION_CLASSES` set to
+`IsAuthenticated` (403 to the same request).
+Failure card: `drf-default-permission-unset` (draft -- source-backed and now
+fixture-tested via a real installed Django/DRF reducer; not yet observed
+against a second independent real project or forward-tested).
+Rule/reference changed: card added; no existing card or reference edited.
+Checker/test added: `python -m pytest tests/cards/test_drf_permission_fail_open.py -q`
+-- 2 passed (unset -> 200, fixed -> 403); full suite
+`python -m pytest tests/cards/ -q` -> 4 passed, 1 skipped (skip is the
+pre-existing PostgreSQL card with no reachable DB in this environment,
+unrelated to this change).
+Status: draft (card-level; fixture-tested reducer proves the mechanism, no
+forward test or second real-project sighting yet)
+
 ## 2026-07-10 - coverage-and-cards-fix-pass-after-hostile-review
 
 Context: `backend-craft/coverage-and-cards` branch. An adversarial Codex review
