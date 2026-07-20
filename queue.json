@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "number": 15,
+    "title": "[case] Workflow-level pull-requests:write is not sufficient — repo toggle silently blocks PR creation and the run still exits green",
+    "labels": [
+      "needs-triage",
+      "case"
+    ],
+    "created_at": "2026-07-20T05:26:58Z",
+    "user": "OnlyNinjaGear",
+    "body": "### Summary\n\nAn automated agent job in CI does hours of real work (branch, commits, verifier run), then fails at the very last step: `gh pr create` is rejected with \"GitHub Actions is not permitted to create or approve pull requests\". The workflow declared `permissions: pull-requests: write`, which looks sufficient — but a **repository/org-level setting** (\"Allow GitHub Actions to create and approve pull requests\", off by default) overrides the workflow-level grant. Worse: the job swallowed the error and the run concluded `success`, so the operator saw green runs and an empty PR list for days.\n\n### Stack\n\nGitHub Actions + GITHUB_TOKEN (generalizes to any two-layer permission model: job-level grant vs org/repo-level policy)\n\n### Failure mode\n\nTwo independent permission layers where the inner grant is necessary but not sufficient; plus silent partial failure — the pipeline's terminal side effect fails while the job still reports success.\n\n### Evidence\n\nObserved 2026-07-19: scheduled triage workflow with `permissions: {contents: write, pull-requests: write}` pushed branch `case-triage/<date>` successfully, then PR creation was denied; `gh api repos/<r>/actions/permissions/workflow` returned `can_approve_pull_request_reviews: false`. Run conclusion: success, permission_denials_count buried in the agent log.\n\n### Verifier idea\n\nPreflight step in the workflow: query `repos/{owner}/{repo}/actions/permissions/workflow` and hard-fail with a clear message if `can_approve_pull_request_reviews` is false. Plus a terminal assertion: after `gh pr create`, assert the PR exists for the pushed branch, otherwise exit 1 so the run cannot be green with the side effect missing.\n\n### Best target artifact\n\nNew failure card\n\n### Privacy check\n\n- [x] I removed company names, credentials, PII, private URLs, and customer data.\n- [x] I checked existing failure cards for duplicates."
+  }
+]
