@@ -22,17 +22,6 @@
     "body": "### Summary\n\nAuthorization on many endpoints is just \"is the caller authenticated?\" (DRF `IsAuthenticated`), written when the only principals were staff users. Later a second authentication class is added globally — an API key for an external machine integrator. Every endpoint still guarded only by `IsAuthenticated` now silently accepts the integrator too, including admin/reference CRUD (reference tables, integration configs) it was never meant to reach. The endpoints didn't change; the meaning of the check under them did.\n\n### Stack\n\nDjango + DRF (generalizes to any framework where a coarse \"authenticated\" check is used as authorization and a new authN method is added app-wide)\n\n### Failure mode\n\nAuthentication-principal-class expansion invalidates coarse authorization. A single IsAuthenticated check conflates two principal classes once a new authN method exists; adding an authenticator re-scopes every authN-only endpoint without editing any of them.\n\n### Evidence\n\n```python\nREST_FRAMEWORK = {\"DEFAULT_AUTHENTICATION_CLASSES\": (\n    \"app.auth.MachineApiKeyAuth\",  # added later, app-wide\n    \"rest_framework_simplejwt.authentication.JWTAuthentication\",\n    \"rest_framework.authentication.SessionAuthentication\",\n)}\n\nclass ProductTypeViewSet(viewsets.ModelViewSet):\n    permission_classes = [IsAuthenticated]  # meant staff; now also the integrator\n```\n\n### Verifier idea\n\nPrincipal-matrix test, run whenever a new authentication class is added: construct a principal holding only the narrow new scope, hit every registered route, assert 403 on everything outside that principal's allowlist.\n\n### Best target artifact\n\nNew failure card\n\n### Privacy check\n\n- [x] I removed company names, credentials, PII, private URLs, and customer data.\n- [x] I checked existing failure cards for duplicates."
   },
   {
-    "number": 4,
-    "title": "[case] DRF has authenticators but no DEFAULT_PERMISSION_CLASSES -> fail-open (AllowAny) default",
-    "labels": [
-      "needs-triage",
-      "case"
-    ],
-    "created_at": "2026-07-16T09:14:53Z",
-    "user": "OnlyNinjaGear",
-    "body": "### Summary\n\n`REST_FRAMEWORK` sets `DEFAULT_AUTHENTICATION_CLASSES` but omits `DEFAULT_PERMISSION_CLASSES`. DRF's built-in default is `AllowAny`, so every view that forgets its own `permission_classes` is public. A forgotten line fails open, not closed.\n\n### Stack\n\nDjango + DRF (same shape in any framework whose out-of-the-box default is \"no authorization\")\n\n### Failure mode\n\nDeny-by-default not set at the framework layer; per-view permission is opt-in. This is the root cause that makes a forgotten permission_classes line a silent exposure rather than a 500.\n\n### Evidence\n\n```python\nREST_FRAMEWORK = {\n    \"DEFAULT_AUTHENTICATION_CLASSES\": (...),\n    # no DEFAULT_PERMISSION_CLASSES -> DRF default == AllowAny\n}\n```\n\n### Verifier idea\n\nConfig assertion or Semgrep: REST_FRAMEWORK must define DEFAULT_PERMISSION_CLASSES to a non-AllowAny value; plus a route sweep so any non-allowlisted route returns 401/403. Caveat: flipping this on an existing service is a behavior change — do a before/after sweep.\n\n### Best target artifact\n\nChecker\n\n### Privacy check\n\n- [x] I removed company names, credentials, PII, private URLs, and customer data.\n- [x] I checked existing failure cards for duplicates."
-  },
-  {
     "number": 5,
     "title": "[case] Custom authenticator raises instead of returning None and reads creds from arbitrary headers",
     "labels": [
