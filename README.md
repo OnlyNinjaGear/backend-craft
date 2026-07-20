@@ -123,7 +123,7 @@ PostToolUse hook подключаются отдельно.
 
 | Артефакт | Текущее состояние |
 |---|---:|
-| Failure cards | 56 |
+| Failure cards | 57 |
 | Карточки со статусом `production-tested` | 17 |
 | Semgrep rules | 16 |
 | Rules со статусом `production-tested` | 2 |
