@@ -29,6 +29,69 @@ Status: observed | production-tested | retired
 
 ## Entries
 
+## 2026-07-20 - auth-cross-layer-prefix-exemption-gap-card-added
+
+Context: daily case-triage run over the intake queue. Open `case`/
+`needs-triage` issues at run time: #2 and #7 (issues #3, #4, #5, and #6 were
+already triaged and merged in prior runs -- `drf-authn-expansion-widens-authz`,
+`drf-default-permission-unset`, `drf-authenticator-raises-instead-of-none`,
+`drf-permission-flag-nulled-for-post-read`). Picked issue #2 as the single
+most promising remaining candidate: a global auth middleware exempts a URL
+prefix (e.g. `/api/*`) trusting DRF to authenticate everything mounted there,
+but a plain non-framework handler registered on that same prefix inherits
+neither check and ships fully unauthenticated. Checked for overlap with the
+existing `auth-middleware-scope-miss` card first: that card is about hook/
+dependency encapsulation among *sibling routers within one framework layer*
+(a Fastify hook or FastAPI router dependency not reaching a sibling router).
+Issue #2 is a different mechanism -- a seam *between two layers* (a prefix-
+exempting middleware and the framework it trusts to cover that prefix), so it
+gets its own card rather than folding into the existing one. Issue #7 (no
+default throttle on the token endpoint) targets a checker/config-assertion
+artifact rather than a new failure card and was left for a future run.
+Django 6.0.7 and djangorestframework 3.17.1 are installed in this
+environment, so the reducer runs the real middleware/view dispatch instead of
+a mock.
+Artifact: `../FAILURE_CARDS.md` (new card
+`auth-cross-layer-prefix-exemption-gap`),
+`tests/cards/auth_cross_layer_prefix_exemption_gap.py` (new reducer),
+`tests/cards/test_auth_cross_layer_prefix_exemption_gap.py` (new verifier).
+Expected: every route reachable under the exempted prefix -- framework view
+or not -- should require authentication before returning data.
+Why the agent likely failed: the middleware's prefix check ("skip auth under
+`/api/`, DRF handles it") is correct for DRF views and silently wrong for any
+plain handler on the same prefix, because nothing else ever runs an auth
+check for that handler. The middleware sees an exempted path and steps aside;
+the plain handler has no auth code of its own and just returns data. Nothing
+errors, and the diff that added the plain handler looks identical to any
+other small utility view.
+Failure card: `auth-cross-layer-prefix-exemption-gap` (new, `draft` --
+source-backed and fixture-tested against real Django/DRF, not yet observed on
+a second independent project or forward-tested).
+Rule/reference changed: none (the gap is a cross-layer trust assumption, not
+a mechanical pattern suited to a Semgrep rule at this scope).
+Checker/test added: `tests/cards/auth_cross_layer_prefix_exemption_gap.py` +
+`tests/cards/test_auth_cross_layer_prefix_exemption_gap.py`. One process,
+one middleware instance, and a manual `get_response` dispatcher (standing in
+for the URL resolver) prove four facts against the same middleware and the
+same anonymous caller: (1) a plain non-DRF view under the exempted prefix
+returns 200 with no credentials; (2) the same middleware still redirects an
+anonymous caller outside the exempted prefix, proving the middleware itself
+is not broken; (3) a real DRF view under the same exempted prefix still 403s,
+proving the gap is specific to non-framework handlers, not the whole prefix;
+(4) the same plain handler, once it checks `request.user.is_authenticated`
+itself instead of trusting the prefix, 403s -- the safe pattern.
+```
+$ python -m pytest tests/cards/test_auth_cross_layer_prefix_exemption_gap.py -q
+4 passed
+
+$ python -m pytest tests/cards/ -q
+20 passed, 1 skipped (pre-existing PostgreSQL card, no reachable DB in this environment)
+
+$ python scripts/validate_repo.py
+validate_repo: ok
+```
+Status: draft
+
 ## 2026-07-20 - drf-permission-flag-nulled-for-post-read-card-added
 
 Context: daily case-triage run over the intake queue. Open `case`/
