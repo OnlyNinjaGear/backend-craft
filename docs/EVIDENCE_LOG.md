@@ -29,6 +29,68 @@ Status: observed | production-tested | retired
 
 ## Entries
 
+## 2026-07-20 - drf-permission-flag-nulled-for-post-read-card-added
+
+Context: daily case-triage run over the intake queue. Open `case`/
+`needs-triage` issues at run time: #2, #6, #7 (same anonymized Django/DRF
+authorization case source as prior runs). Issues #3, #4, and #5 were already
+triaged and merged (`drf-authn-expansion-widens-authz`,
+`drf-default-permission-unset`, `drf-authenticator-raises-instead-of-none`).
+Picked issue #6 as the single most promising remaining candidate: it names a
+concrete, mechanism-rich bug -- a method-based authorization mixin "fixed" for
+two reads-over-POST actions by nulling the shared permission-flag attribute
+instead of mapping those actions to the permission they actually need -- with
+no overlap in the existing card corpus (distinct from
+`drf-authn-expansion-widens-authz`, which is a coarse check silently widening
+when a new authenticator is added; this is a guard attribute being cleared
+outright inside the view's own permission check). Issue #7 (missing default
+throttle) targets a checker/config-assertion artifact rather than a new card
+and was left for a future run. Django + DRF are installed in this environment
+(Django 6.0.7, djangorestframework 3.17.1), so the reducer runs against the
+real library instead of a mock.
+Artifact: `../FAILURE_CARDS.md` (new card
+`drf-permission-flag-nulled-for-post-read`),
+`tests/cards/drf_permission_flag_nulled_for_post_read.py` (new reducer),
+`tests/cards/test_drf_permission_flag_nulled_for_post_read.py` (new verifier).
+Expected: an authenticated principal holding none of a view's permissions
+should get 403 on every action guarded by that view's permission flag,
+including actions reached over `POST` that are semantically reads.
+Why the agent likely failed: the mixin's `check_permissions` override
+branches on `self.action`, and for the two misclassified read actions it sets
+`self.permission_flag = None` before calling `super().check_permissions()`,
+then restores the flag afterward. The shared permission class treats a falsy
+flag as "nothing to check" -- a pattern that reads naturally as "these actions
+don't need the write permission" but actually disables authorization for them
+entirely, including for principals with none of the view's permissions. The
+diff looks like an intentional, narrow read-classification fix, so it is easy
+to approve in review without noticing the guard is gone.
+Failure card: `drf-permission-flag-nulled-for-post-read` (new, `draft` --
+source-backed and fixture-tested against real Django/DRF, not yet observed on
+a second independent project or forward-tested).
+Rule/reference changed: none (semantic view-logic bug, not a mechanical
+pattern suited to a Semgrep rule at this scope).
+Checker/test added: `tests/cards/drf_permission_flag_nulled_for_post_read.py`
++ `tests/cards/test_drf_permission_flag_nulled_for_post_read.py`. Both run in
+a single process (unlike the sibling authn/permission cards, nothing here
+touches `django.conf.settings` between variants) and prove, against the same
+permission class and same two principals: (1) the buggy mixin returns 200 for
+an unprivileged principal on `by_key` but still 403s the same principal on the
+untouched `moderate` write action; (2) the fixed mixin (explicit
+`action -> permission` map, no nulling) 403s the unprivileged principal on
+`by_key` and 200s a principal holding only the mapped read permission, while
+still 403ing that same read-only principal on `moderate`.
+```
+$ python -m pytest tests/cards/test_drf_permission_flag_nulled_for_post_read.py -q
+4 passed
+
+$ python -m pytest tests/cards/ -q
+16 passed, 1 skipped (pre-existing PostgreSQL card, no reachable DB in this environment)
+
+$ python scripts/validate_repo.py
+validate_repo: ok
+```
+Status: draft
+
 ## 2026-07-20 - drf-authenticator-raises-instead-of-none-card-added
 
 Context: daily case-triage run over the intake queue (issues #2, #5, #6, #7 --
