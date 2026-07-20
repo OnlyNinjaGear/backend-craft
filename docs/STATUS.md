@@ -81,10 +81,10 @@ fixture не доказывает интеграцию с Gin или Echo.
 | Артефакт | Состояние |
 |---|---:|
 | Reference packs | 11 |
-| Failure cards | 51 |
+| Failure cards | 53 |
 | Cards со статусом `production-tested` | 17 |
 | Cards со статусом `observed` | 8 |
-| Cards со статусом `draft` | 26 |
+| Cards со статусом `draft` | 28 |
 | Semgrep rules | 16 |
 | Rules со статусом `production-tested` | 2 |
 | Rules со статусом `fixture-tested` | 11 |
