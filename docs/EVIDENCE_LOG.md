@@ -29,6 +29,58 @@ Status: observed | production-tested | retired
 
 ## Entries
 
+## 2026-07-20 - drf-authenticator-raises-instead-of-none-card-added
+
+Context: daily case-triage run over the intake queue (issues #2, #5, #6, #7 --
+same anonymized Django/DRF authorization case source as the 2026-07-19 and
+prior 2026-07-20 runs). Issues #3 and #4 were already triaged in earlier runs
+(`drf-authn-expansion-widens-authz` and `drf-default-permission-unset`, both
+merged). Picked issue #5 as the single most promising remaining candidate: it
+names a concrete, mechanism-rich bug in a custom `BaseAuthentication` --
+raising instead of returning `None`, plus inferring credentials from an
+unconstrained header scan -- with no overlap in the existing card corpus
+(distinct from `drf-authn-expansion-widens-authz`, which is about a coarse
+permission check silently widening; this is about the authenticator itself
+breaking the fallback chain for principals it was never meant to touch).
+Django + DRF are installed in this environment (Django 6.0.7,
+djangorestframework 3.17.1), so the reducer runs against the real library
+instead of a mock.
+Artifact: `../FAILURE_CARDS.md` (new card
+`drf-authenticator-raises-instead-of-none`),
+`tests/cards/drf_authenticator_raises_instead_of_none.py` (new reducer),
+`tests/cards/test_drf_authenticator_raises_instead_of_none.py` (new verifier).
+Expected: a request carrying a valid session cookie should authenticate via
+the session/JWT authenticator regardless of what a sibling API-key
+authenticator does with headers it does not recognize.
+Why the agent likely failed: DRF's documented contract is "return `None` if
+authentication is not attempted, raise `AuthenticationFailed` if it is
+attempted and fails" -- but "I could not find my own credentials" reads to a
+model like a failure, not a no-op, so it raises. `Request._authenticate()` in
+the installed djangorestframework 3.17.1 source stops the authenticator loop
+on the first raised `APIException` and never tries the next authenticator, so
+this is silent until a real session/JWT user happens to omit the API key or
+sends an unrecognized header. Reducer runs the same protected `APIView`
+(`permission_classes = [IsAuthenticated]`) against a buggy and a fixed
+authenticator variant, each in a fresh subprocess (Django settings configure
+once per process), across three request shapes: valid session cookie with no
+API key, valid session cookie plus one unrelated header (e.g. a tracing
+header), and a valid API key alone. The buggy variant returns 401 for the
+first two despite a valid session and 200 only for the third; the fixed
+variant (checks one named header, returns `None` if absent, uses
+`hmac.compare_digest`) returns 200 for all three.
+Failure card: `drf-authenticator-raises-instead-of-none` (draft --
+source-backed via the DRF authentication docs and now fixture-tested via a
+real installed Django/DRF reducer; not yet observed against a second
+independent real project or forward-tested).
+Rule/reference changed: card added; no existing card or reference edited.
+Checker/test added: `python -m pytest
+tests/cards/test_drf_authenticator_raises_instead_of_none.py -q` -- 6 passed;
+full suite `python -m pytest tests/cards/ -q` -> 12 passed, 1 skipped (skip is
+the pre-existing PostgreSQL card with no reachable DB in this environment,
+unrelated to this change).
+Status: draft (card-level; fixture-tested reducer proves the mechanism, no
+forward test or second real-project sighting yet)
+
 ## 2026-07-20 - drf-authn-expansion-widens-authz-card-added
 
 Context: daily case-triage run over the intake queue (issues #2-#7, the same
