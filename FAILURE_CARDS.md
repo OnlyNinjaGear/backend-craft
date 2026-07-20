@@ -137,6 +137,18 @@ Verifier: instantiate the DRF settings actually used by the project; assert `DEF
 Escape hatch: a route intentionally public (health check, signed webhook receiver, public docs) with `permission_classes = [AllowAny]` stated explicitly on the view, not inherited from an unset default.
 Sources: DRF permissions docs, https://www.django-rest-framework.org/api-guide/permissions/ (documents `DEFAULT_PERMISSION_CLASSES` as a global `REST_FRAMEWORK` setting and `AllowAny` as its shipped default when unset — confirmed directly against the installed `djangorestframework` 3.17.1 source in this repo's environment, see reducer); OWASP Authorization Cheat Sheet (deny by default).
 
+## drf-authn-expansion-widens-authz
+
+Status: draft
+Triggered by: a Django REST Framework project where authorization on many endpoints is just "is the caller authenticated" (`permission_classes = [IsAuthenticated]`), then a new authentication class is added to `DEFAULT_AUTHENTICATION_CLASSES` project-wide (commonly an API-key class for a machine/service integrator).
+Model failure: treats `IsAuthenticated` as scoped authorization when it is only a coarse "some principal resolved" check. The check was written when the only principal that could authenticate was a staff user; adding a second authentication class does not touch any view's `permission_classes`, but it changes who can satisfy that check. Every endpoint guarded only by `IsAuthenticated` — including admin/reference CRUD never meant for the new principal — silently accepts it too.
+Blast radius: whole classes of endpoints (anything relying on bare `IsAuthenticated`) become reachable by a principal added for one narrow purpose, without a single line of those endpoints changing; nothing errors, and code review of the new authenticator does not surface the affected views because they live elsewhere.
+Detect: a `REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"]` change (an addition) alongside views/viewsets whose only authorization is `permission_classes = [IsAuthenticated]` (or an equivalent coarse "authenticated" check) with no principal/scope/role distinction.
+Safe pattern: authorization must be principal-aware, not just authentication-aware — key on role/scope/claim (`IsAdminUser`, a custom permission checking `request.auth`'s scope, or a DRF `Permission` per principal class) so a new authentication method does not implicitly re-scope every endpoint that used to trust "authenticated == staff."
+Verifier: principal-matrix test, run whenever a new authentication class is added — construct a request authenticated only via the new class, hit every route guarded by bare `IsAuthenticated`, and assert 403 on everything outside that principal's explicit allowlist. Reducer at `tests/cards/drf_authn_expansion_widens_authz.py` isolates the mechanism: same view, same `permission_classes`, only the authenticator list changes, and a request that got 403 before now gets 200.
+Escape hatch: an endpoint intentionally meant for every authenticated principal class (e.g. a shared `/whoami/` health-style endpoint) — state that explicitly in review, not by omission.
+Sources: DRF permissions docs, https://www.django-rest-framework.org/api-guide/permissions/ (permission classes run against whatever `request.user`/`request.auth` the configured authenticators resolve, independent of which authenticator resolved them); OWASP Authorization Cheat Sheet (authorization must be enforced per resource/principal, not inferred from authentication alone).
+
 ## tenant-filter-forgotten
 
 Status: production-tested (forward-test 003, 2026-07-10)

@@ -13,7 +13,7 @@ It helps coding agents design, review, and harden backends by checking API
 contracts, authorization boundaries, migrations, retries, timeouts,
 idempotency, and background jobs before those failures reach production.
 
-**51 failure patterns · 16 Semgrep rules · 3 runnable fixtures · 16 planted flaws**
+**53 failure patterns · 16 Semgrep rules · 3 runnable fixtures · 16 planted flaws**
 
 [Install](#installation) · [Supported stacks](#supported-stacks) ·
 [How it works](#how-it-works) · [Project readiness](docs/STATUS.md)
@@ -122,7 +122,7 @@ are installed separately.
 
 ## Why Trust It
 
-The current snapshot contains 51 failure cards, including 17
+The current snapshot contains 53 failure cards, including 17
 `production-tested` cards, and 16 Semgrep rules.
 
 | Artifact | Current state |

@@ -29,6 +29,50 @@ Status: observed | production-tested | retired
 
 ## Entries
 
+## 2026-07-20 - drf-authn-expansion-widens-authz-card-added
+
+Context: daily case-triage run over the intake queue (issues #2-#7, the same
+anonymized Django/DRF authorization case source as the 2026-07-19 run). Issue
+#4 was already triaged in that prior run (`drf-default-permission-unset`,
+merged). Picked issue #3 as the single most promising remaining candidate: it
+names a distinct mechanism -- authentication-principal expansion silently
+widening every bare-`IsAuthenticated` endpoint -- that none of the existing
+cards cover (`drf-default-permission-unset` is about a missing default,
+`authz-handler-only` and `auth-middleware-scope-miss` are about
+encapsulation/scope, not the meaning of an authentication check changing
+underneath an unedited permission check). Django + DRF are installed in this
+environment (Django 6.0.7, djangorestframework 3.17.1), so the reducer runs
+against the real library.
+Artifact: `../FAILURE_CARDS.md` (new card `drf-authn-expansion-widens-authz`),
+`tests/cards/drf_authn_expansion_widens_authz.py` (new reducer),
+`tests/cards/test_drf_authn_expansion_widens_authz.py` (new verifier).
+Expected: a view guarded only by `permission_classes = [IsAuthenticated]`
+should keep denying a principal that was never meant to reach it, regardless
+of which authentication classes are configured.
+Why the agent likely failed: `IsAuthenticated` only checks
+`request.user.is_authenticated`; it says nothing about which authenticator
+resolved that user. Adding an authentication class to
+`DEFAULT_AUTHENTICATION_CLASSES` is a global, one-line config change that
+touches zero view files, so review of that change does not surface the
+views it silently re-scopes. Reducer runs the same `APIView`
+(`permission_classes = [IsAuthenticated]`, never edited) in two subprocesses
+(Django settings configure once per process): one with only an empty
+authenticator list (a request carrying a machine API-key header gets 403),
+one with a machine API-key authenticator added (the same request now gets
+200); a zero-credential request stays denied in both, showing the gap is
+specific to the newly recognized principal, not a blanket `AllowAny` regression.
+Failure card: `drf-authn-expansion-widens-authz` (draft -- source-backed and
+now fixture-tested via a real installed Django/DRF reducer; not yet observed
+against a second independent real project or forward-tested).
+Rule/reference changed: card added; no existing card or reference edited.
+Checker/test added: `python -m pytest tests/cards/test_drf_authn_expansion_widens_authz.py -q`
+-- 2 passed (narrow -> 403/403, widened -> 200/401); full suite
+`python -m pytest tests/cards/ -q` -> 6 passed, 1 skipped (skip is the
+pre-existing PostgreSQL card with no reachable DB in this environment,
+unrelated to this change).
+Status: draft (card-level; fixture-tested reducer proves the mechanism, no
+forward test or second real-project sighting yet)
+
 ## 2026-07-19 - inference-node-readiness-assumptions
 
 Context: wiring a Go backend to self-hosted inference services (embedding,
