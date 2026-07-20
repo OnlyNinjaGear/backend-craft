@@ -13,7 +13,7 @@ on:
 permissions:
   contents: write              # чтобы создать ветку и коммит
   pull-requests: write         # чтобы открыть PR
-  issues: read                 # чтобы читать очередь-issues
+  issues: write                # читать очередь и закрывать разобранные issues
 
 jobs:
   radar:
