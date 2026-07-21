@@ -29,6 +29,68 @@ Status: observed | production-tested | retired
 
 ## Entries
 
+## 2026-07-21 - infra-gha-pr-permission-toggle-silent-fail-card-added
+
+Context: daily case-triage run over the intake queue. Only one open `case`/
+`needs-triage` issue at run time: #15 (workflow-level `pull-requests: write`
+looks sufficient for `gh pr create`, but a repo/org-level toggle -- "Allow
+GitHub Actions to create and approve pull requests", off by default --
+independently blocks it, and the job swallowed the error and reported
+`success` with no PR created). A prior run (2026-07-20) had already looked at
+#15 alongside #16 and picked #16 first specifically because its verifier
+could stay hermetic (pure local git, no GitHub API); #15 was deferred, not
+rejected. With #16 already merged and #15 now the only remaining candidate,
+this run designed a verifier for #15 without needing live GitHub API calls:
+the mechanism (job-level grant is necessary but not sufficient; a swallowed
+terminal-step error lets the job report false success) reduces cleanly to a
+mocked API client with two independent boolean flags, so it is fully
+hermetic and deterministic in CI, same bar the prior run set for #16. No
+overlap with any existing card: grepped `FAILURE_CARDS.md` for
+`actions/permissions`, `pull-requests: write`, `gh pr create`, `GITHUB_TOKEN`
+-- no matches; the existing `infra-*` cards cover deploy/process-management
+and git-merge-semantics topics, none cover CI permission layering or
+terminal-side-effect verification.
+Artifact: `../FAILURE_CARDS.md` (new card
+`infra-gha-pr-permission-toggle-silent-fail`),
+`tests/cards/infra_gha_pr_permission_toggle_silent_fail.py` (new reducer),
+`tests/cards/test_infra_gha_pr_permission_toggle_silent_fail.py` (new
+verifier).
+Expected: a pipeline that creates a PR as its terminal deliverable should
+either produce that PR or fail the job loudly -- never report `success` with
+the PR silently missing.
+Why the agent likely failed: the workflow's own `permissions:` block is the
+only permission surface the job can see and reason about from inside the
+run, so it reads as complete; the repo/org toggle is invisible to the job
+unless explicitly queried, and GitHub's own error text at PR-creation time is
+easy to catch-and-log rather than treat as fatal, especially in a pipeline
+built to be resilient to per-step noise. The reducer isolates the two facts
+directly: (1) `create_pull_request` only succeeds when both an independent
+job-level flag and a repo-level flag are true -- one true and one false still
+raises; (2) a pipeline that catches that error and returns `"success"`
+regardless does so with zero PRs created, while a pipeline with an explicit
+preflight capability check and a postflight existence assertion fails loudly
+in the identical scenario, and the postflight check alone still catches a
+creation call that returns cleanly without a PR actually landing.
+Failure card: `infra-gha-pr-permission-toggle-silent-fail` (new, `observed`
+-- matches this pipeline's own real incident referenced in issue #15, plus
+the reducer proves the two-layer-permission and swallowed-error mechanisms
+directly rather than relying on the issue's narrative alone).
+Rule/reference changed: none (the safe pattern is a pipeline-design
+discipline -- preflight + postflight checks around a terminal side effect --
+not a mechanical code pattern a Semgrep/ast-grep rule can usefully flag).
+Checker/test added:
+`tests/cards/test_infra_gha_pr_permission_toggle_silent_fail.py`, 5/5
+passing; full suite `python -m pytest tests/cards/ -q` green (see PR
+verifier output).
+Sources verified: this run had no network/WebFetch access, so the GitHub
+Docs citations in the card (repo/org toggle off by default;
+`can_approve_pull_request_reviews` field on
+`GET /repos/{owner}/{repo}/actions/permissions/workflow`) are corroborated
+by the `gh api` output the source issue itself reports, not independently
+re-fetched against current GitHub Docs this run -- the card notes this and
+should be confirmed against live docs before promoting past `observed`.
+Status: observed
+
 ## 2026-07-20 - infra-shared-append-log-merge-conflict-card-added
 
 Context: daily case-triage run over the intake queue. Open `case`/
