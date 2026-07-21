@@ -930,3 +930,15 @@ the unauthenticated route-table sweep (all non-allowlisted routes 401/403).
 Sources verified against fastify.dev and fastapi.tiangolo.com on 2026-07-10.
 Status: draft (card-level; no fixture plant — fixtures use fake header auth
 by design, zero-dep philosophy)
+
+## 2026-07-20 - validation-guard-admits-its-own-blocked-case
+
+Context: a deploy script gained a guard to stop `rm -rf .venv` from running on an
+ML-incompatible Python. v1 was `^3[.]1[0-9]$` (intended: 3.10-3.12).
+Artifact: `inference/deploy.sh` venv-recreate guard.
+Expected: reject the node-default 3.14 so a forgotten `PYTHON=` override cannot destroy a good 3.12 venv.
+Why the agent likely failed: `1[0-9]` reads as "3.1x" at a glance; the author verified a good value passes, not that the dangerous value is rejected.
+Failure card: infra-guard-regex-admits-blocked-case.
+Rule/reference changed: new card; reinforces self-hosted-inference.md (venv recreate) verifier discipline.
+Checker/test added: version-gate truth table (3.9/3.12/3.13/3.14/3.20) asserting 3.14 -> block.
+Status: observed
